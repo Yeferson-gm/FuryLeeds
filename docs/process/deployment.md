@@ -69,7 +69,7 @@ The multi-stage `Dockerfile`:
 - installs from `bun.lock` with `--frozen-lockfile`;
 - separates build dependencies from production dependencies;
 - builds Next.js with `bun run build`;
-- copies only `.next`, production dependencies, runtime source/config, public assets, migration assets, and the proprietary license;
+- copies only `.next`, production dependencies, runtime source/config, public assets, and the proprietary license;
 - runs as the non-root `bun` user;
 - exposes only port `3000` inside the image;
 - starts with `bun run start`, which invokes `server.ts` rather than `next start`;
@@ -170,11 +170,11 @@ Migrations remain a controlled release action and are not run on container start
 1. Create and verify a restorable PostgreSQL backup for high-risk migrations.
 2. Test the migration against a disposable/non-production database.
 3. Review locks, rewrites, indexes, backfills, and old/new application compatibility.
-4. Run `bun run db:migrate` exactly once using the target image or another authorized Bun environment with the production `DATABASE_URL`.
+4. From a trusted operator checkout of the approved revision, run `bun run db:migrate` exactly once with the production `DATABASE_URL` supplied through an ephemeral environment.
 5. Verify migration state and representative queries.
 6. Deploy the application in the required compatibility order.
 
-The runtime image includes `drizzle/`, `scripts/migrate.ts`, and production Drizzle dependencies so an authorized one-off Dokploy terminal/job can run the migration command. Never run concurrent migrators and never make every replica migrate during startup.
+The runtime image intentionally excludes `drizzle/`, `scripts/`, and migration commands. Dokploy only builds and starts the application; it must not run migrations through startup hooks, terminal commands, or scheduled jobs. Never run concurrent migrators.
 
 ## Release sequence
 

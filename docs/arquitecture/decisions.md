@@ -155,8 +155,8 @@ Statuses:
 - **Date:** 2026-09-24
 - **Status:** Accepted
 - **Context:** FuryLeeds needs a reproducible Bun production artifact that preserves the custom Next.js/Socket.IO server and can be deployed on the owner's VPS.
-- **Decision:** Deploy FuryLeeds as a Dokploy Application using build type `Dockerfile`, path `Dockerfile`, context `.`, final stage `runner`, one replica, and container port `3000`. Dokploy/Traefik owns HTTPS/domain routing. Docker Compose is not an active path.
-- **Consequences:** The image is multi-stage, non-root, lockfile-frozen, healthchecked at `/health`, and receives secrets only as Dokploy runtime variables. PostgreSQL migrations remain a controlled one-off command. Horizontal scaling is still prohibited until Socket.IO/rate-limit coordination is designed. A real staging deployment remains required before production acceptance.
+- **Decision:** Deploy FuryLeeds as a Dokploy Application using build type `Dockerfile`, path `Dockerfile`, context `.`, final stage `runner`, one replica, and container port `3000`. Dokploy/Traefik owns HTTPS/domain routing. Docker Compose is not an active path. PostgreSQL migrations run only from a trusted operator checkout and are excluded from the runtime image and Dokploy execution.
+- **Consequences:** The image is multi-stage, non-root, lockfile-frozen, healthchecked at `/health`, receives secrets only as Dokploy runtime variables, and contains no migration SQL or operational scripts. Database releases require a separate controlled operator action before application deployment. Horizontal scaling is still prohibited until Socket.IO/rate-limit coordination is designed. A real staging deployment remains required before production acceptance.
 - **Links:** [Deployment](../process/deployment.md), [Architecture](architecture.md), [Realtime](realtime.md).
 
 ## ADR-015 — Private proprietary ownership
@@ -183,7 +183,7 @@ The following are real gaps, not accepted implementations:
 
 | Area | Decision still required |
 |---|---|
-| Dokploy verification | Staging proof of image build, Traefik HTTPS/WebSocket routing, health transition, migration job, graceful shutdown, and rollback settings. |
+| Dokploy verification | Staging proof of image build without migration assets, Traefik HTTPS/WebSocket routing, health transition, graceful shutdown, and rollback settings. |
 | Ingress hardening | Trusted proxy/client-IP policy, DNS ownership, request limits/timeouts, and production certificate verification. |
 | PostgreSQL operations | Hosting topology, supported version, off-host backup, encryption, retention, RPO/RTO, restore owner, and drill cadence. |
 | Horizontal scaling | Socket.IO adapter, sticky routing, singleton/listener/worker responsibilities, distributed rate limiting, and scheduler coordination. |

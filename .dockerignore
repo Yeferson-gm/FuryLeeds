@@ -14,9 +14,3 @@
 !src/**
 !public/
 !public/**
-
-# Keep migrations in the runtime image for controlled one-off releases.
-!drizzle/
-!drizzle/**
-!scripts/
-!scripts/migrate.ts

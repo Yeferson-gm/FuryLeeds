@@ -11,7 +11,7 @@ FuryLeeds uses PostgreSQL through Bun's native `Bun.SQL` client and Drizzle's `b
 - `db`: typed Drizzle queries and transactions;
 - `sqlClient`: raw tagged SQL, explicit transactions, migrations and PostgreSQL `LISTEN`.
 
-The main pool is lazy and configured with `max: 20`, `idleTimeout: 30`, and `connectionTimeout: 5`. A separate one-connection client is held open by the realtime gateway. `DATABASE_URL` is mandatory.
+The main pool is lazy, process-singleton in every environment, and configured with `max: 10`, `idleTimeout: 30`, and `connectionTimeout: 5`. A separate one-connection client is held open by the realtime gateway. `DATABASE_URL` is mandatory. Graceful shutdown closes both the listener and the main pool; creating a pool per query would exhaust PostgreSQL connections and is prohibited.
 
 Drizzle Kit uses PostgreSQL, schema glob `./src/lib/db/*-schema.ts`, output `./drizzle`, and `schemaFilter: ['public']`.
 
@@ -197,7 +197,7 @@ Operational workflow:
 5. run `bun run db:migrate` with `DATABASE_URL` set;
 6. deploy application code compatible with the migrated schema.
 
-The migration runner uses Drizzle's Bun SQL migrator and closes the pool on completion. There is no seed script in the scoped project.
+The migration runner uses Drizzle's Bun SQL migrator and calls the shared `closeDatabase()` lifecycle function on completion. There is no seed script in the scoped project.
 
 ## Known schema and migration limits
 

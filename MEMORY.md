@@ -26,7 +26,7 @@ Supabase e InsForge no forman parte del runtime ni de la arquitectura activa.
 - `FuryLeeds` es la única marca visible y documental; `furyleeds` queda reservado a identificadores técnicos que requieren minúsculas.
 - Se migraron package/metadata, Better Auth, correos, UI, CSS, localStorage/eventos, prefijo `furyleeds_live_`, headers `X-FuryLeeds-*`, realtime PostgreSQL, pruebas, ejemplos, Docker y documentación.
 - El cambio invalida intencionalmente API keys del prefijo retirado y reinicia preferencias locales del navegador bajo las claves nuevas; no existe shim de doble identidad.
-- El repositorio canónico pasa a `git@github.com:Yeferson-gm/FuryLeeds.git`; el remoto anterior debe quedar eliminado antes del primer push.
+- El repositorio canónico es `git@github.com:Yeferson-gm/FuryLeeds.git`; el remoto y la historia anteriores fueron retirados antes de publicar el commit raíz.
 
 ### Modernización y calidad
 
@@ -44,7 +44,7 @@ Supabase e InsForge no forman parte del runtime ni de la arquitectura activa.
 
 - FuryLeeds quedó declarado como software privado propietario de CEDURS TECHNOLOGY GROUP S.A.C. en `LICENCE.md` y `package.json` usa `UNLICENSED`.
 - El deployment aceptado es Dokploy Application con método Dockerfile, contexto `.`, etapa final `runner` y puerto interno `3000`.
-- `Dockerfile` usa Bun 1.4 multi-stage, dependencias congeladas, usuario no root, `server.ts`, healthcheck y artefactos mínimos.
+- `Dockerfile` usa Bun 1.4 multi-stage, dependencias congeladas, usuario no root, `server.ts`, healthcheck y artefactos mínimos. La imagen excluye migraciones y scripts operativos; Dokploy solo construye e inicia la aplicación.
 - `.dockerignore` usa allow-list; `.gitignore` conserva `.agents/skills/**` como fuente versionable.
 - `compose.yml` fue eliminado porque Docker Compose no es el método seleccionado.
 - `GET|HEAD /health` está implementado y probado para healthcheck/rollout de Dokploy.
@@ -62,6 +62,8 @@ Migraciones presentes:
 
 La migración `0005` retira de bases existentes los triggers/funciones realtime del identificador anterior, instala `furyleeds_realtime_v1` y revoca las API keys emitidas con el prefijo retirado; los clientes deben generar claves nuevas y actualizar consumidores de webhooks a `X-FuryLeeds-*`. Para instalaciones limpias, `0002` ya crea únicamente objetos FuryLeeds. La migración `0003` elimina `profiles.role` y `profiles.beta_features`, columnas sin uso funcional. El bootstrap de nuevos usuarios fue sincronizado y ya no intenta insertar `profiles.role`. La migración `0004` agrega defaults `gen_random_uuid()::text` a las cuatro PK de Better Auth; fue aplicada correctamente al PostgreSQL local y el inicio Google pasó de HTTP 500 a HTTP 200 al poder persistir el estado OAuth en `verification`.
 
+El 2026-09-24 se aplicaron `0000`–`0005` a la base PostgreSQL de producción autorizada, que estaba vacía antes de la operación. La verificación posterior confirmó 6 entradas Drizzle, 40 tablas públicas, 7 funciones y 7 triggers FuryLeeds, 0 columnas obsoletas de perfil y los 4 defaults de IDs de Better Auth. No se registró la cadena de conexión.
+
 ### Auth y sistema visual graphite
 
 - Login, registro, recuperación, reset e invitaciones comparten `AuthPageShell`: una sola marca FuryLeeds fuera del formulario, fondo técnico sutil, panel graphite y navegación coherente.
@@ -73,8 +75,9 @@ La migración `0005` retira de bases existentes los triggers/funciones realtime 
 - El shell autenticado usa Boneyard con un fallback estructural responsive para sidebar, header y contenido centrado mientras resuelven sesión y perfil. La generación geométrica real del dashboard queda pendiente de ejecutar mediante CDP con una cuenta de desarrollo autenticada; no se agregó bypass de auth ni se almacenaron cookies.
 - Se auditó y completó ChatSend para el ciclo de autenticación: registro conserva verificación por enlace, la recuperación usa OTP nativo de Better Auth de seis dígitos (hash en DB, 10 minutos, cinco intentos y rate limit), y se añadieron correos de bienvenida y confirmación posterior al cambio de contraseña. `/forgot-password` contiene solicitud, validación y nueva contraseña sin secretos en URL; la antigua ruta `/reset-password` fue retirada. ChatSend valida URL/protocolo, exige HTTPS en producción y aplica timeout de 10 segundos. El envío OTP se difiere con `advanced.backgroundTasks.handler` de Better Auth para reducir diferencias temporales de enumeración y se documenta como process-bound/no durable. No se importa `next/server` desde la configuración compartida de auth, porque `server.ts` la carga directamente bajo Bun y esa importación provoca el error de `AsyncLocalStorage` fuera del runtime de rutas Next.
 
-### Servidor local y URL canónica
+### Servidor local, conexiones PostgreSQL y URL canónica
 
+- Se corrigió un agotamiento de conexiones PostgreSQL en producción: `src/lib/db/index.ts` creaba un pool nuevo por acceso porque solo cacheaba el runtime fuera de producción. El pool principal ahora es singleton en todos los entornos, está limitado a 10 conexiones y `server.ts` lo cierra explícitamente durante `SIGINT`/`SIGTERM`, además del listener realtime. La documentación oficial de Bun acepta valores superiores (muestra `max: 20`), pero 10 conserva margen en el PostgreSQL productivo de 100 conexiones.
 - `server.ts` ya no usa la variable estándar del sistema `HOSTNAME` como dirección de escucha ni como URL visible; Fedora la establece con el nombre de la máquina (`fedora`), lo que antes producía `http://fedora:3000`.
 - Desarrollo enlaza explícitamente en `127.0.0.1` y anuncia `http://localhost:<PORT>`; producción enlaza en `0.0.0.0` y conserva `BETTER_AUTH_URL` como origen público canónico.
 - El Dockerfile y los inventarios de entorno retiraron `HOSTNAME` como configuración de FuryLeeds. Reiniciar el proceso es obligatorio para aplicar este cambio.
@@ -217,7 +220,7 @@ La migración `0005` está aplicada en el PostgreSQL local configurado y la iden
 
 1. Iniciar el sistema con `bun run dev` cuando se necesite continuar la validación local; el proceso se detuvo ordenadamente antes del build.
 2. Hacer un smoke test de login, conexión Socket.IO y un flujo básico de inbox.
-3. Verificar el Docker build, healthcheck, HTTPS, WebSocket y migración one-off en un Dokploy staging autorizado.
+3. Verificar el Docker build, healthcheck, HTTPS y WebSocket en un Dokploy staging autorizado; las migraciones no forman parte de la imagen ni de la ejecución de Dokploy.
 
 ## Hallazgos abiertos prioritarios
 

@@ -28,7 +28,7 @@ function runtime(): RuntimeState {
 
   const client = new Bun.SQL({
     url: connectionString,
-    max: 20,
+    max: 10,
     idleTimeout: 30,
     connectionTimeout: 5,
   });
@@ -36,11 +36,16 @@ function runtime(): RuntimeState {
     require('drizzle-orm/bun-sql') as typeof import('drizzle-orm/bun-sql');
   const database = drizzle(client, { schema });
   const state = { client, database };
-
-  if (process.env.NODE_ENV !== 'production') {
-    globalForDatabase.crmDatabase = state;
-  }
+  globalForDatabase.crmDatabase = state;
   return state;
+}
+
+export async function closeDatabase(): Promise<void> {
+  const state = globalForDatabase.crmDatabase;
+  if (!state) return;
+
+  delete globalForDatabase.crmDatabase;
+  await state.client.close();
 }
 
 export const db = new Proxy({} as Database, {

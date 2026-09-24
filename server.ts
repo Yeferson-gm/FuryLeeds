@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import next from 'next';
+import { closeDatabase } from '@/lib/db';
 import { createRealtimeGateway } from '@/lib/realtime/server';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -32,6 +33,7 @@ async function shutdown(signal: string) {
   try {
     await realtime.close();
     await app.close();
+    await closeDatabase();
     process.exitCode = 0;
   } catch (error) {
     console.error('[server] graceful shutdown failed:', error);

@@ -48,7 +48,7 @@ Return acknowledgment quickly after signature validation and JSON acceptance; ta
 
 ## Database budgets
 
-- Reuse the existing process-wide application pool (`max: 20`) and dedicated realtime listener (`max: 1`).
+- Reuse the existing process-wide application pool (`max: 10`) and dedicated realtime listener (`max: 1`).
 - Size total possible connections across replicas, migration processes, and operational sessions below PostgreSQL capacity with safety headroom. Exact allowed percentage is **pending infrastructure decision**.
 - No query in a request loop when a bounded set-based query is practical.
 - Paginate public/API/UI collections with stable order and maximum limit.

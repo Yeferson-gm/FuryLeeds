@@ -133,10 +133,10 @@ These scheduled scans are operational jobs, not UI/realtime polling. Browser cha
 
 `src/lib/db/index.ts` lazily initializes one runtime state containing:
 
-- a `Bun.SQL` pool (`max: 20`, idle timeout 30 seconds, connection timeout 5 seconds);
+- one process-singleton `Bun.SQL` pool (`max: 10`, idle timeout 30 seconds, connection timeout 5 seconds);
 - a Drizzle `BunSQLDatabase` over the combined auth, CRM and relation schema.
 
-In non-production, the state is cached on `globalThis` to survive Next development reloads. Raw tagged SQL and transactions use `sqlClient`; typed queries use `db`. Realtime owns a second dedicated `Bun.SQL` connection (`max: 1`, no idle timeout) solely for `LISTEN`.
+The state is cached on `globalThis` in every environment: this survives Next development reloads and prevents production requests from constructing a pool per database access. Raw tagged SQL and transactions use `sqlClient`; typed queries use `db`. Realtime owns a second dedicated `Bun.SQL` connection (`max: 1`, no idle timeout) solely for `LISTEN`. Graceful shutdown closes both clients.
 
 See [Database](./database.md).
 
@@ -216,7 +216,7 @@ bun run db:migrate
 bun run db:studio
 ```
 
-`bun run db:migrate` runs `scripts/migrate.ts`, applies migrations from `./drizzle`, closes the SQL client and exits. Schema generation reads `src/lib/db/*-schema.ts` and targets PostgreSQL's `public` schema.
+`bun run db:migrate` runs `scripts/migrate.ts`, applies migrations from `./drizzle`, closes the SQL client and exits. It is an operator-checkout command only: migration sources and scripts are excluded from the production image, and Dokploy never runs them. Schema generation reads `src/lib/db/*-schema.ts` and targets PostgreSQL's `public` schema.
 
 ## Deployment and scaling limits
 

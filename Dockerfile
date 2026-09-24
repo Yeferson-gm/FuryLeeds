@@ -39,8 +39,6 @@ COPY --from=builder --chown=bun:bun /app/src ./src
 COPY --from=builder --chown=bun:bun /app/server.ts ./server.ts
 COPY --from=builder --chown=bun:bun /app/package.json /app/bun.lock ./
 COPY --from=builder --chown=bun:bun /app/tsconfig.json /app/next.config.ts ./
-COPY --chown=bun:bun drizzle ./drizzle
-COPY --chown=bun:bun scripts/migrate.ts ./scripts/migrate.ts
 COPY --chown=bun:bun LICENCE.md ./LICENCE.md
 
 USER bun
