@@ -1,0 +1,95 @@
+import { NextResponse } from 'next/server';
+import {
+  getCurrentAccount,
+  requireRole,
+  toErrorResponse,
+} from '@/lib/auth/account';
+import { getContactTags } from '@/lib/contacts/repository';
+
+import { addContactTagAndDispatch } from '@/lib/contacts/tag-events';
+import {
+  ContactTagWriteError,
+  removeContactTag,
+} from '@/lib/contacts/tag-write';
+
+function tagWriteErrorResponse(error: ContactTagWriteError): NextResponse {
+  return NextResponse.json({ error: error.message }, { status: error.status });
+}
+
+async function readTagId(request: Request): Promise<string | null> {
+  const body = (await request.json().catch(() => null)) as {
+    tag_id?: unknown;
+  } | null;
+  return typeof body?.tag_id === 'string' && body.tag_id.trim()
+    ? body.tag_id.trim()
+    : null;
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const ctx = await getCurrentAccount();
+    const { id } = await params;
+    const contactTags = await getContactTags(ctx.db, ctx.accountId, id);
+    return NextResponse.json({ contactTags });
+  } catch (error) {
+    return toErrorResponse(error);
+  }
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const ctx = await requireRole('agent');
+    const { id: contactId } = await params;
+    const tagId = await readTagId(request);
+    if (!tagId) {
+      return NextResponse.json({ error: 'tag_id required' }, { status: 400 });
+    }
+
+    const result = await addContactTagAndDispatch({
+      db: ctx.db,
+      accountId: ctx.accountId,
+      contactId,
+      tagId,
+    });
+
+    return NextResponse.json({ ok: true, ...result });
+  } catch (error) {
+    if (error instanceof ContactTagWriteError) {
+      return tagWriteErrorResponse(error);
+    }
+    return toErrorResponse(error);
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const ctx = await requireRole('agent');
+    const { id: contactId } = await params;
+    const tagId = await readTagId(request);
+    if (!tagId) {
+      return NextResponse.json({ error: 'tag_id required' }, { status: 400 });
+    }
+
+    await removeContactTag(ctx.db, {
+      accountId: ctx.accountId,
+      contactId,
+      tagId,
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof ContactTagWriteError) {
+      return tagWriteErrorResponse(error);
+    }
+    return toErrorResponse(error);
+  }
+}

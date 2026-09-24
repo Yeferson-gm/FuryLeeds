@@ -1,0 +1,229 @@
+'use client';
+
+/**
+ * View-switcher + chrome for the flow editor.
+ *
+ * Lays the editor out as one app-like column that fills the dashboard
+ * content area (toolbar → mode row → stage → validation bar), matching
+ * the Flow Builder design handoff:
+ *   - A segmented Canvas / List control on the left of the mode row.
+ *   - A node-type legend on the right so the canvas's per-type colors
+ *     are decodable at a glance.
+ *   - The active view is mounted inside a rounded "stage" that owns its
+ *     own scroll/overflow, so the canvas can fill available height and
+ *     the list scrolls internally.
+ *
+ * Why a separate component:
+ *   - The page itself stays trivially small (loading + error + this).
+ *   - Either view can stay unaware of the other — they share data
+ *     (`{flow, nodes}`) and nothing else.
+ *
+ * View choice persists per-browser via localStorage so a power user
+ * who prefers the list isn't fighting the default on every load.
+ * Canvas is the default for everyone else — the original user
+ * feedback was that the list shape made flows "hard to understand".
+ */
+
+import { GitFork, List } from 'lucide-react';
+
+import { useCallback, useSyncExternalStore } from 'react';
+import type { FlowNodeRow, FlowRow } from '@/lib/flows/types';
+import { cn } from '@/lib/utils';
+import { FlowBuilder } from './flow-builder';
+import { FlowCanvas } from './flow-canvas';
+import { FlowEditorProvider } from './flow-editor-state';
+import { EditorHeader } from './header';
+import { NODE_META, type NodeType, nodeColors } from './shared';
+import { ValidationPanel } from './validation-panel';
+
+/**
+ * Below this viewport width we force list view and hide the toggle.
+ * Canvas with drag-to-connect on a phone is unusable — handles are
+ * ~10px and live finger drags from one node to another aren't a
+ * practical workflow. Matches Tailwind's `md` breakpoint.
+ */
+const MOBILE_BREAKPOINT = '(max-width: 767px)';
+
+type View = 'canvas' | 'list';
+
+const STORAGE_KEY = 'furyleeds.flowEditor.view';
+const VIEW_CHANGE_EVENT = 'furyleeds:flow-editor-view-change';
+let currentView: View | null = null;
+
+function readStoredView(): View {
+  if (currentView) return currentView;
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved === 'canvas' || saved === 'list') return saved;
+  } catch {
+    // Storage is optional in private or restricted browser contexts.
+  }
+  return 'canvas';
+}
+
+function subscribeToStoredView(onChange: () => void): () => void {
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== STORAGE_KEY) return;
+    currentView = null;
+    onChange();
+  };
+  window.addEventListener('storage', handleStorage);
+  window.addEventListener(VIEW_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener('storage', handleStorage);
+    window.removeEventListener(VIEW_CHANGE_EVENT, onChange);
+  };
+}
+
+function useStoredView(): View {
+  return useSyncExternalStore(
+    subscribeToStoredView,
+    readStoredView,
+    () => 'canvas'
+  );
+}
+
+// Legend covers every node type, derived from NODE_META so a new type
+// can't silently go undocumented. NODE_META's key order already reads
+// the way a flow flows: start → talk → capture → branch → mutate → end.
+const LEGEND_TYPES = Object.keys(NODE_META) as NodeType[];
+
+interface Props {
+  initialFlow: FlowRow;
+  initialNodes: FlowNodeRow[];
+}
+
+export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
+  const view = useStoredView();
+
+  // Live mobile detection. We don't render canvas under the
+  // breakpoint regardless of `view` — but we keep `view` itself
+  // intact so the user's preference comes back when they widen
+  // again (e.g. rotating a tablet, resizing a window).
+  const isMobile = useMatchMedia(MOBILE_BREAKPOINT);
+  const effectiveView: View = isMobile ? 'list' : view;
+
+  const choose = (next: View) => {
+    currentView = next;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // The in-memory preference still works for this browser session.
+    }
+    window.dispatchEvent(new Event(VIEW_CHANGE_EVENT));
+  };
+
+  return (
+    <FlowEditorProvider initialFlow={initialFlow} initialNodes={initialNodes}>
+      <div className="flex h-full min-h-0 flex-col">
+        <EditorHeader />
+
+        {/* ---- mode row: view toggle + node-type legend ----
+            Omitted entirely on mobile (canvas is unavailable there and
+            the legend is lg-only), so there's no empty band above the
+            stage on small screens. */}
+        {!isMobile && (
+          <div className="flex items-center gap-4 px-6 py-3.5">
+            <fieldset
+              aria-label="Vista del editor"
+              className="inline-flex gap-0.5 rounded-lg border border-border bg-muted p-0.5"
+            >
+              <SegButton
+                active={effectiveView === 'canvas'}
+                onClick={() => choose('canvas')}
+                icon={<GitFork className="h-3.5 w-3.5" />}
+                label="Lienzo"
+              />
+              <SegButton
+                active={effectiveView === 'list'}
+                onClick={() => choose('list')}
+                icon={<List className="h-3.5 w-3.5" />}
+                label="Lista"
+              />
+            </fieldset>
+            <div className="ml-auto hidden flex-wrap items-center gap-x-3.5 gap-y-1.5 lg:flex">
+              {LEGEND_TYPES.map((t_type) => (
+                <span
+                  key={t_type}
+                  className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground"
+                >
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ background: nodeColors(t_type).solid }}
+                  />
+                  {NODE_META[t_type].label}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ---- stage: the active view, owning its own overflow ---- */}
+        <div className="relative mx-6 min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card-2">
+          {effectiveView === 'canvas' ? (
+            <FlowCanvas />
+          ) : (
+            <div className="absolute inset-0 overflow-y-auto">
+              <FlowBuilder />
+            </div>
+          )}
+        </div>
+
+        {/* ---- validation / activate-readiness bar ---- */}
+        <div className="px-6 pb-5 pt-3">
+          <ValidationPanel />
+        </div>
+      </div>
+    </FlowEditorProvider>
+  );
+}
+
+/**
+ * Tiny `useMatchMedia` shim. We could pull in `react-responsive` but
+ * this is the only consumer and matchMedia is one of those browser
+ * APIs that doesn't need a dependency.
+ */
+function useMatchMedia(query: string): boolean {
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const mediaQuery = window.matchMedia(query);
+      mediaQuery.addEventListener('change', onChange);
+      return () => mediaQuery.removeEventListener('change', onChange);
+    },
+    [query]
+  );
+  const getSnapshot = useCallback(
+    () => window.matchMedia(query).matches,
+    [query]
+  );
+  return useSyncExternalStore(subscribe, getSnapshot, () => false);
+}
+
+function SegButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium transition-colors',
+        active
+          ? 'bg-card text-foreground shadow-sm'
+          : 'text-muted-foreground hover:text-foreground'
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}

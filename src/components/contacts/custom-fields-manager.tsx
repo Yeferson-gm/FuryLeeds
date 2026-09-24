@@ -1,0 +1,275 @@
+'use client';
+
+import { Loader2, Plus, Trash2 } from 'lucide-react';
+
+import { useCallback, useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { confirmDestructiveAction } from '@/lib/action-alerts';
+import {
+  createCustomField,
+  deleteCustomField,
+  fetchCustomFields,
+  updateCustomField,
+} from '@/lib/contacts/api';
+import { toast } from '@/lib/notifications';
+import type { CustomField } from '@/types';
+
+interface CustomFieldsManagerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+/**
+ * Dialog wrapper around {@link CustomFieldsPanel}, used on the Contacts page.
+ * The same panel is rendered inline under Settings → Custom Fields, so the
+ * editing UI lives in one place. Radix unmounts the dialog content on close,
+ * so the panel remounts (and refetches) on each open.
+ */
+export function CustomFieldsManager({
+  open,
+  onOpenChange,
+}: CustomFieldsManagerProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-popover-foreground">
+            Campos personalizados
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Define campos adicionales para los contactos (p. ej. código postal,
+            origen del lead). Aparecen en todos los contactos y en la acción de
+            automatización “Actualizar campo del contacto”.
+          </DialogDescription>
+        </DialogHeader>
+        <CustomFieldsPanel />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Create / rename / delete account-wide custom contact field definitions.
+ * Per-contact values are edited elsewhere (contact detail → Custom Fields);
+ * this only manages the field catalogue. The caller and API both enforce
+ * the administrator role.
+ */
+export function CustomFieldsPanel() {
+  const [fields, setFields] = useState<CustomField[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const fetchFields = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await fetchCustomFields();
+      setFields(result.fields);
+    } catch {
+      toast.error('No se pudieron cargar los campos.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load the field catalogue when the panel mounts.
+  useEffect(() => {
+    fetchFields();
+  }, [fetchFields]);
+
+  /** Case-insensitive name clash within the loaded list. */
+  function isDuplicate(name: string, exceptId?: string): boolean {
+    const lower = name.toLowerCase();
+    return fields.some(
+      (f) => f.id !== exceptId && f.field_name.toLowerCase() === lower
+    );
+  }
+
+  async function handleCreate() {
+    const name = newName.trim();
+    if (!name) return;
+
+    if (isDuplicate(name)) {
+      toast.error(`Ya existe un campo llamado "${name}".`);
+      return;
+    }
+
+    setCreating(true);
+    try {
+      await createCustomField(name);
+      toast.success(`"${name}" creado.`);
+      setNewName('');
+      await fetchFields();
+    } catch {
+      toast.error('No se pudo crear el campo. Quizá no tengas permiso.');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  /** Returns true on success so the row can keep the new name, false so it
+   *  reverts to the previous one. No-ops (blank / unchanged) count as success. */
+  async function handleRename(
+    field: CustomField,
+    nextName: string
+  ): Promise<boolean> {
+    const name = nextName.trim();
+    if (!name || name === field.field_name) return true;
+    if (isDuplicate(name, field.id)) {
+      toast.error(`Ya existe un campo llamado "${name}".`);
+      return false;
+    }
+    setBusyId(field.id);
+    try {
+      await updateCustomField(field.id, name);
+      await fetchFields();
+      return true;
+    } catch {
+      toast.error('No se pudo renombrar el campo.');
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleDelete(field: CustomField) {
+    const confirmed = await confirmDestructiveAction({
+      title: `¿Eliminar "${field.field_name}"?`,
+      text: 'También se eliminará el valor guardado en todos los contactos. Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar campo',
+    });
+    if (!confirmed) return;
+    setBusyId(field.id);
+    try {
+      await deleteCustomField(field.id);
+      toast.success(`"${field.field_name}" eliminado.`);
+      await fetchFields();
+    } catch {
+      toast.error('No se pudo eliminar el campo.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Create */}
+      <div className="flex items-center gap-2">
+        <Input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              void handleCreate();
+            }
+          }}
+          placeholder="Nombre del nuevo campo…"
+          className="bg-muted text-foreground"
+        />
+        <Button
+          onClick={handleCreate}
+          disabled={creating || !newName.trim()}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
+        >
+          {creating ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Plus className="size-4" />
+          )}
+          Agregar
+        </Button>
+      </div>
+
+      {/* List */}
+      <div className="max-h-72 overflow-y-auto rounded-md border border-border">
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" />
+            Cargando…
+          </div>
+        ) : fields.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Aún no hay campos personalizados.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {fields.map((field) => (
+              <FieldRow
+                key={field.id}
+                field={field}
+                busy={busyId === field.id}
+                onRename={handleRename}
+                onDelete={handleDelete}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** A single editable row. Controlled local state lets us commit on blur /
+ *  Enter and cleanly revert to the last saved name when a rename fails. */
+function FieldRow({
+  field,
+  busy,
+  onRename,
+  onDelete,
+}: {
+  field: CustomField;
+  busy: boolean;
+  onRename: (field: CustomField, name: string) => Promise<boolean>;
+  onDelete: (field: CustomField) => void;
+}) {
+  const [name, setName] = useState(field.field_name);
+
+  async function commit() {
+    if (name.trim() === field.field_name) {
+      setName(field.field_name); // normalise any whitespace-only edit
+      return;
+    }
+    const ok = await onRename(field, name);
+    if (!ok) setName(field.field_name);
+  }
+
+  return (
+    <li className="flex items-center gap-2 px-3 py-2">
+      <Input
+        value={name}
+        disabled={busy}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+        }}
+        aria-label={`Renombrar ${field.field_name}`}
+        className="focus:border-primary h-8 border-transparent bg-transparent text-foreground hover:border-border"
+      />
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        disabled={busy}
+        onClick={() => onDelete(field)}
+        title="Eliminar campo"
+        className="shrink-0 text-muted-foreground hover:text-red-400"
+      >
+        {busy ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Trash2 className="size-4" />
+        )}
+      </Button>
+    </li>
+  );
+}

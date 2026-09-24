@@ -1,0 +1,315 @@
+'use client';
+
+import {
+  Loader2,
+  MessageSquare,
+  Pencil,
+  Plus,
+  Trash2,
+  Zap,
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  blankButtonsPayload,
+  InteractiveBuilder,
+} from '@/components/interactive/interactive-builder';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { confirmDestructiveAction } from '@/lib/action-alerts';
+import { toast } from '@/lib/notifications';
+import {
+  type InteractiveMessagePayload,
+  interactivePayloadPreviewText,
+} from '@/lib/whatsapp/interactive';
+import type { QuickReply, QuickReplyKind } from '@/types';
+import { SettingsPanelHead } from './settings-panel-head';
+
+interface DraftState {
+  id?: string;
+  title: string;
+  kind: QuickReplyKind;
+  content_text: string;
+  interactive_payload: InteractiveMessagePayload;
+}
+
+function emptyDraft(): DraftState {
+  return {
+    title: '',
+    kind: 'text',
+    content_text: '',
+    interactive_payload: blankButtonsPayload(),
+  };
+}
+
+export function QuickRepliesManager() {
+  const [items, setItems] = useState<QuickReply[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState<DraftState | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/quick-replies', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => ({}));
+      setItems((data.quick_replies as QuickReply[]) ?? []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const openCreate = () => setDraft(emptyDraft());
+  const openEdit = (qr: QuickReply) =>
+    setDraft({
+      id: qr.id,
+      title: qr.title,
+      kind: qr.kind,
+      content_text: qr.content_text ?? '',
+      interactive_payload: qr.interactive_payload ?? blankButtonsPayload(),
+    });
+
+  const save = useCallback(async () => {
+    if (!draft) return;
+    if (!draft.title.trim()) {
+      toast.error('Asigna un nombre a la respuesta rápida.');
+      return;
+    }
+    const payload =
+      draft.kind === 'interactive'
+        ? {
+            title: draft.title,
+            kind: 'interactive',
+            interactive_payload: draft.interactive_payload,
+          }
+        : {
+            title: draft.title,
+            kind: 'text',
+            content_text: draft.content_text,
+          };
+
+    setSaving(true);
+    try {
+      const res = await fetch(
+        draft.id ? `/api/quick-replies/${draft.id}` : '/api/quick-replies',
+        {
+          method: draft.id ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? 'No se pudo guardar la respuesta rápida.');
+        return;
+      }
+      toast.success(
+        draft.id ? 'Respuesta rápida actualizada.' : 'Respuesta rápida creada.'
+      );
+      setDraft(null);
+      await load();
+    } catch {
+      toast.error('No se pudo guardar la respuesta rápida.');
+    } finally {
+      setSaving(false);
+    }
+  }, [draft, load]);
+
+  const remove = useCallback(
+    async (id: string) => {
+      const confirmed = await confirmDestructiveAction({
+        title: '¿Eliminar esta respuesta rápida?',
+        text: 'Dejará de estar disponible para todos los agentes. Esta acción no se puede deshacer.',
+        confirmText: 'Eliminar respuesta',
+      });
+      if (!confirmed) return;
+
+      const res = await fetch(`/api/quick-replies/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        toast.error('No se pudo eliminar la respuesta rápida.');
+        return;
+      }
+      await load();
+    },
+    [load]
+  );
+
+  return (
+    <div>
+      <SettingsPanelHead
+        title="Respuestas rápidas"
+        description="Fragmentos reutilizables —texto simple o un mensaje interactivo guardado— que los agentes pueden insertar desde el editor de la bandeja de entrada."
+        action={
+          <Button onClick={openCreate}>
+            <Plus className="mr-1 h-4 w-4" />
+            Nueva respuesta rápida
+          </Button>
+        }
+      />
+
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : items.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+          Aún no hay respuestas rápidas. Crea una para reutilizarla en distintas
+          conversaciones.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {items.map((qr) => (
+            <li
+              key={qr.id}
+              className="flex items-start gap-3 rounded-lg border border-border bg-card p-3"
+            >
+              {qr.kind === 'interactive' ? (
+                <Zap className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              ) : (
+                <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">
+                  {qr.title}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {qr.kind === 'interactive' && qr.interactive_payload
+                    ? interactivePayloadPreviewText(qr.interactive_payload)
+                    : qr.content_text}
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => openEdit(qr)}
+                  aria-label={`Editar respuesta rápida ${qr.title}`}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => remove(qr.id)}
+                  className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  aria-label={`Eliminar respuesta rápida ${qr.title}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Dialog open={!!draft} onOpenChange={(o) => !o && setDraft(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {draft?.id ? 'Editar respuesta rápida' : 'Nueva respuesta rápida'}
+            </DialogTitle>
+          </DialogHeader>
+          {draft && (
+            <div className="max-h-[70vh] space-y-3 overflow-y-auto">
+              <div>
+                <label
+                  htmlFor="quick-reply-name"
+                  className="mb-1 block text-xs text-muted-foreground"
+                >
+                  Nombre
+                </label>
+                <Input
+                  id="quick-reply-name"
+                  value={draft.title}
+                  onChange={(e) =>
+                    setDraft({ ...draft, title: e.target.value })
+                  }
+                  placeholder="p. ej. Horario de atención"
+                  className="bg-muted text-foreground"
+                />
+              </div>
+              <div className="flex gap-2">
+                <KindTab
+                  active={draft.kind === 'text'}
+                  label="Texto"
+                  onClick={() => setDraft({ ...draft, kind: 'text' })}
+                />
+                <KindTab
+                  active={draft.kind === 'interactive'}
+                  label="Interactiva"
+                  onClick={() => setDraft({ ...draft, kind: 'interactive' })}
+                />
+              </div>
+              {draft.kind === 'text' ? (
+                <Textarea
+                  value={draft.content_text}
+                  onChange={(e) =>
+                    setDraft({ ...draft, content_text: e.target.value })
+                  }
+                  placeholder="Texto del mensaje que se insertará"
+                  className="min-h-28 bg-muted text-foreground"
+                />
+              ) : (
+                <InteractiveBuilder
+                  value={draft.interactive_payload}
+                  onChange={(p) =>
+                    setDraft({ ...draft, interactive_payload: p })
+                  }
+                />
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDraft(null)}
+              disabled={saving}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={save} disabled={saving}>
+              {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function KindTab({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? 'flex-1 rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary'
+          : 'flex-1 rounded-md border border-border bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground'
+      }
+    >
+      {label}
+    </button>
+  );
+}

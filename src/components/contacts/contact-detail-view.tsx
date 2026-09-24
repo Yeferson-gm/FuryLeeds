@@ -1,0 +1,729 @@
+'use client';
+
+import {
+  Building2,
+  Check,
+  Copy,
+  DollarSign,
+  LayoutTemplate,
+  Loader2,
+  Mail,
+  Phone,
+  Plus,
+  Save,
+  Trash2,
+} from 'lucide-react';
+
+import { useCallback, useEffect, useState } from 'react';
+import {
+  TemplatePicker,
+  type TemplateSendValues,
+} from '@/components/inbox/template-picker';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/hooks/use-auth';
+import {
+  addContactNote,
+  deleteContactNote,
+  fetchContactDetail,
+  saveContactCustomValues,
+  updateContact,
+} from '@/lib/contacts/api';
+import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
+import { formatCurrency } from '@/lib/currency';
+import { toast } from '@/lib/notifications';
+import { parseInternationalPhone } from '@/lib/whatsapp/phone-utils';
+import { contactHandle } from '@/lib/whatsapp/wa-identity';
+import type {
+  Contact,
+  ContactNote,
+  CustomField,
+  Deal,
+  MessageTemplate,
+  Tag,
+} from '@/types';
+
+interface ContactDetailViewProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  contactId: string | null;
+  onUpdated: () => void;
+}
+
+export function ContactDetailView({
+  open,
+  onOpenChange,
+  contactId,
+  onUpdated,
+}: ContactDetailViewProps) {
+  const { defaultCurrency } = useAuth();
+
+  const [contact, setContact] = useState<Contact | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [copiedPhone, setCopiedPhone] = useState(false);
+
+  // Send template — lets the business initiate (or re-open) a conversation
+  // with this contact by sending an approved template. The send route
+  // find-or-creates the conversation, so no inbound message is required.
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [sendingTemplate, setSendingTemplate] = useState(false);
+
+  // Details tab
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editCompany, setEditCompany] = useState('');
+  const [savingDetails, setSavingDetails] = useState(false);
+
+  // Tags tab
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [contactTagIds, setContactTagIds] = useState<string[]>([]);
+  const contactTagIdSet = new Set(contactTagIds);
+  const [savingTags, setSavingTags] = useState(false);
+
+  // Notes tab
+  const [notes, setNotes] = useState<ContactNote[]>([]);
+  const [newNote, setNewNote] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+  const [loadingNotes, setLoadingNotes] = useState(false);
+
+  // Custom fields tab
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
+  const [savingCustom, setSavingCustom] = useState(false);
+  const [loadingCustom, setLoadingCustom] = useState(false);
+
+  // Deals tab
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loadingDeals, setLoadingDeals] = useState(false);
+
+  const fetchContact = useCallback(async () => {
+    if (!contactId) return;
+    setLoading(true);
+    setLoadingNotes(true);
+    setLoadingCustom(true);
+    setLoadingDeals(true);
+    try {
+      const data = await fetchContactDetail(contactId);
+      setContact(data.contact);
+      setEditName(data.contact.name ?? '');
+      setEditPhone(data.contact.phone);
+      setEditEmail(data.contact.email ?? '');
+      setEditCompany(data.contact.company ?? '');
+      setAllTags(data.tags);
+      setContactTagIds(data.contactTags.map((tag) => tag.tag_id));
+      setNotes(data.notes);
+      setCustomFields(data.customFields);
+      setCustomValues(
+        Object.fromEntries(
+          data.customValues.map((value) => [
+            value.custom_field_id,
+            value.value ?? '',
+          ])
+        )
+      );
+      setDeals(data.deals);
+    } catch {
+      toast.error('Error al cargar el contacto');
+    } finally {
+      setLoading(false);
+      setLoadingNotes(false);
+      setLoadingCustom(false);
+      setLoadingDeals(false);
+    }
+  }, [contactId]);
+
+  useEffect(() => {
+    if (open && contactId) fetchContact();
+  }, [open, contactId, fetchContact]);
+
+  async function copyPhone() {
+    if (!contact) return;
+    await navigator.clipboard.writeText(contactHandle(contact));
+    setCopiedPhone(true);
+    setTimeout(() => setCopiedPhone(false), 2000);
+  }
+
+  async function saveDetails() {
+    if (!contactId || !editPhone.trim()) {
+      toast.error('El número de teléfono es obligatorio');
+      return;
+    }
+
+    // Same rule as the create form: a changed number must start with `+`
+    // and a country code (issue #586). Unchanged numbers — including the
+    // digits-only form the inbound webhook stores — are left alone so a
+    // name/email edit is never blocked by the phone field.
+    const phoneChanged = editPhone.trim() !== (contact?.phone ?? '');
+    if (phoneChanged && !parseInternationalPhone(editPhone)) {
+      toast.error(
+        'Incluye el código de país — el número debe empezar con + (p. ej. +5215512345678)'
+      );
+      return;
+    }
+
+    setSavingDetails(true);
+    try {
+      await updateContact(contactId, {
+        name: editName.trim() || null,
+        ...(phoneChanged ? { phone: editPhone.trim() } : {}),
+        email: editEmail.trim() || null,
+        company: editCompany.trim() || null,
+      });
+      toast.success('Contacto actualizado');
+      fetchContact();
+      onUpdated();
+    } catch {
+      toast.error('Error al actualizar el contacto');
+    } finally {
+      setSavingDetails(false);
+    }
+  }
+
+  async function toggleTag(tagId: string) {
+    if (!contactId) return;
+    setSavingTags(true);
+
+    const isSelected = contactTagIds.includes(tagId);
+
+    try {
+      if (isSelected) {
+        await deleteContactTag(contactId, tagId);
+        setContactTagIds((prev) => prev.filter((id) => id !== tagId));
+      } else {
+        await addContactTag(contactId, tagId);
+        setContactTagIds((prev) => [...prev, tagId]);
+      }
+      onUpdated();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Error al actualizar el contacto'
+      );
+    } finally {
+      setSavingTags(false);
+    }
+  }
+
+  async function addNote() {
+    if (!contactId || !newNote.trim()) return;
+    setSavingNote(true);
+
+    try {
+      const result = await addContactNote(contactId, newNote.trim());
+      setNotes((prev) => [result.note, ...prev]);
+      setNewNote('');
+      toast.success('Nota agregada');
+    } catch {
+      toast.error('Error al agregar la nota');
+    } finally {
+      setSavingNote(false);
+    }
+  }
+
+  async function deleteNote(noteId: string) {
+    if (!contactId) return;
+    try {
+      await deleteContactNote(contactId, noteId);
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      toast.success('Nota eliminada');
+    } catch {
+      toast.error('Error al eliminar la nota');
+    }
+  }
+
+  async function saveCustomFields() {
+    if (!contactId) return;
+    setSavingCustom(true);
+
+    try {
+      await saveContactCustomValues(contactId, customValues);
+      toast.success('Campos personalizados guardados');
+    } catch {
+      toast.error('Error al guardar los campos personalizados');
+    } finally {
+      setSavingCustom(false);
+    }
+  }
+
+  async function handleSendTemplate(
+    template: MessageTemplate,
+    values: TemplateSendValues
+  ) {
+    if (!contactId) return;
+    setSendingTemplate(true);
+    try {
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // No conversation_id — the route find-or-creates one for this
+          // contact, mirroring the inbox template-send payload otherwise.
+          contact_id: contactId,
+          message_type: 'template',
+          template_name: template.name,
+          template_language: template.language,
+          template_message_params: {
+            body: values.body,
+            headerText: values.headerText,
+            buttonParams: values.buttonParams,
+          },
+          template_params: values.body,
+        }),
+      });
+
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        const reason = payload?.error || `HTTP ${res.status}`;
+        toast.error(`Error al enviar la plantilla: ${reason}`);
+        return;
+      }
+
+      toast.success(`Plantilla "${template.name}" enviada`);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'error de red';
+      toast.error(`Error al enviar la plantilla: ${reason}`);
+    } finally {
+      setSendingTemplate(false);
+    }
+  }
+
+  function getInitials(name?: string | null) {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="right"
+          className="bg-popover border-border text-popover-foreground sm:max-w-lg w-full p-0"
+        >
+          {loading || !contact ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="size-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <SheetHeader className="p-4 border-b border-border/50">
+                <div className="flex items-center gap-3">
+                  <Avatar className="size-12 bg-muted border border-border">
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                      {getInitials(contact.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <SheetTitle className="text-popover-foreground truncate">
+                      {contact.name || 'Desconocido'}
+                    </SheetTitle>
+                    <SheetDescription className="text-muted-foreground text-xs mt-0.5">
+                      Datos del contacto
+                    </SheetDescription>
+                    <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                      <button
+                        type="button"
+                        onClick={copyPhone}
+                        className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                      >
+                        <Phone className="size-3" />
+                        {contactHandle(contact)}
+                        {copiedPhone ? (
+                          <Check className="size-3 text-primary" />
+                        ) : (
+                          <Copy className="size-3" />
+                        )}
+                      </button>
+                      {contact.email && (
+                        <span className="flex items-center gap-1">
+                          <Mail className="size-3" />
+                          {contact.email}
+                        </span>
+                      )}
+                      {contact.company && (
+                        <span className="flex items-center gap-1">
+                          <Building2 className="size-3" />
+                          {contact.company}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Button
+                    size="sm"
+                    onClick={() => setTemplatePickerOpen(true)}
+                    disabled={sendingTemplate}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {sendingTemplate ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <LayoutTemplate className="size-4" />
+                    )}
+                    Enviar plantilla
+                  </Button>
+                </div>
+              </SheetHeader>
+
+              {/* Tabs */}
+              <Tabs
+                defaultValue="details"
+                className="flex-1 flex flex-col min-h-0"
+              >
+                <TabsList className="bg-muted/50 border-b border-border mx-4 mt-3">
+                  <TabsTrigger
+                    value="details"
+                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
+                  >
+                    Detalles
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="tags"
+                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
+                  >
+                    Etiquetas
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="notes"
+                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
+                  >
+                    Notas
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="custom"
+                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
+                  >
+                    Campos personalizados
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="deals"
+                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
+                  >
+                    Negocios
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Details Tab */}
+                <TabsContent
+                  value="details"
+                  className="flex-1 overflow-y-auto px-4 py-3"
+                >
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-muted-foreground text-xs">
+                        Nombre
+                      </Label>
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="bg-muted border-border text-foreground h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-muted-foreground text-xs">
+                        Teléfono <span className="text-red-400">*</span>
+                      </Label>
+                      <Input
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="bg-muted border-border text-foreground h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-muted-foreground text-xs">
+                        Correo electrónico
+                      </Label>
+                      <Input
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        className="bg-muted border-border text-foreground h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-muted-foreground text-xs">
+                        Empresa
+                      </Label>
+                      <Input
+                        value={editCompany}
+                        onChange={(e) => setEditCompany(e.target.value)}
+                        className="bg-muted border-border text-foreground h-8 text-sm"
+                      />
+                    </div>
+                    <Button
+                      onClick={saveDetails}
+                      disabled={savingDetails}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground w-full"
+                      size="sm"
+                    >
+                      {savingDetails ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Save className="size-3.5" />
+                      )}
+                      Guardar cambios
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                {/* Tags Tab */}
+                <TabsContent
+                  value="tags"
+                  className="flex-1 overflow-y-auto px-4 py-3"
+                >
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Haz clic en una etiqueta para agregarla o quitarla de este
+                      contacto.
+                    </p>
+                    {allTags.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No hay etiquetas disponibles. Crea etiquetas en
+                        Configuración.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {allTags.map((tag) => {
+                          const selected = contactTagIdSet.has(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => toggleTag(tag.id)}
+                              disabled={savingTags}
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-[background-color,color,opacity,box-shadow] cursor-pointer ${
+                                selected
+                                  ? 'ring-2 ring-primary ring-offset-1 ring-offset-border'
+                                  : 'opacity-50 hover:opacity-80'
+                              }`}
+                              style={{
+                                backgroundColor: `${tag.color}20`,
+                                color: tag.color,
+                              }}
+                            >
+                              {selected && <Check className="size-3 mr-1" />}
+                              {tag.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* Notes Tab */}
+                <TabsContent
+                  value="notes"
+                  className="flex-1 flex flex-col min-h-0 px-4 py-3"
+                >
+                  <div className="space-y-2 mb-3">
+                    <Textarea
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      placeholder="Escribe una nota..."
+                      className="bg-muted border-border text-foreground placeholder:text-muted-foreground min-h-15 text-sm resize-none"
+                    />
+                    <Button
+                      onClick={addNote}
+                      disabled={!newNote.trim() || savingNote}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                      size="sm"
+                    >
+                      {savingNote ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Plus className="size-3.5" />
+                      )}
+                      Agregar nota
+                    </Button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-2">
+                    {loadingNotes ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : notes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        Aún no hay notas.
+                      </p>
+                    ) : (
+                      notes.map((note) => (
+                        <div
+                          key={note.id}
+                          className="rounded-lg bg-muted/50 border border-border/50 p-3 group"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap flex-1">
+                              {note.note_text}
+                            </p>
+                            <button
+                              type="button"
+                              aria-label="Eliminar nota"
+                              onClick={() => deleteNote(note.id)}
+                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400 transition-[color,opacity] cursor-pointer shrink-0"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1.5">
+                            {new Date(note.created_at).toLocaleDateString(
+                              'es-ES',
+                              {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              }
+                            )}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* Custom Fields Tab */}
+                <TabsContent
+                  value="custom"
+                  className="flex-1 overflow-y-auto px-4 py-3"
+                >
+                  {loadingCustom ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : customFields.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No hay campos personalizados definidos. Créalos en
+                      Configuración.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {customFields.map((field) => (
+                        <div key={field.id} className="space-y-1.5">
+                          <Label className="text-muted-foreground text-xs capitalize">
+                            {field.field_name}
+                          </Label>
+                          <Input
+                            value={customValues[field.id] ?? ''}
+                            onChange={(e) =>
+                              setCustomValues((prev) => ({
+                                ...prev,
+                                [field.id]: e.target.value,
+                              }))
+                            }
+                            placeholder={`Ingresa ${field.field_name}...`}
+                            className="bg-muted border-border text-foreground h-8 text-sm placeholder:text-muted-foreground"
+                          />
+                        </div>
+                      ))}
+                      <Button
+                        onClick={saveCustomFields}
+                        disabled={savingCustom}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground w-full"
+                        size="sm"
+                      >
+                        {savingCustom ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Save className="size-3.5" />
+                        )}
+                        Guardar campos personalizados
+                      </Button>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Deals Tab */}
+                <TabsContent
+                  value="deals"
+                  className="flex-1 overflow-y-auto px-4 py-3"
+                >
+                  {loadingDeals ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="size-5 animate-spin text-primary" />
+                    </div>
+                  ) : deals.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Aún no hay negocios
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {deals.map((deal) => (
+                        <div
+                          key={deal.id}
+                          className="rounded-lg border border-border bg-muted/50 p-3"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-medium text-foreground">
+                              {deal.title}
+                            </p>
+                            {deal.stage && (
+                              <span
+                                className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                                style={{
+                                  backgroundColor: `${deal.stage.color}20`,
+                                  color: deal.stage.color,
+                                }}
+                              >
+                                {deal.stage.name}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="size-3" />
+                              {formatCurrency(
+                                deal.value ?? 0,
+                                deal.currency || defaultCurrency
+                              )}
+                            </span>
+                            {deal.status && deal.status !== 'open' && (
+                              <span
+                                className={
+                                  deal.status === 'won'
+                                    ? 'text-primary'
+                                    : 'text-red-400'
+                                }
+                              >
+                                {deal.status}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+      <TemplatePicker
+        open={templatePickerOpen}
+        onOpenChange={setTemplatePickerOpen}
+        onSelect={handleSendTemplate}
+      />
+    </>
+  );
+}

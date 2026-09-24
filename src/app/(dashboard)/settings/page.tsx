@@ -1,0 +1,100 @@
+'use client';
+
+import { useRouter, useSearchParams } from 'next/navigation';
+import { type ReactNode, Suspense, useMemo } from 'react';
+import { ApiKeysSettings } from '@/components/settings/api-keys-settings';
+import { AppearancePanel } from '@/components/settings/appearance-panel';
+import { DealsSettings } from '@/components/settings/deals-settings';
+import { FieldsAndTagsPanel } from '@/components/settings/fields-and-tags-panel';
+import { MembersTab } from '@/components/settings/members-tab';
+import { ProfileForm } from '@/components/settings/profile-form';
+import { QuickRepliesManager } from '@/components/settings/quick-replies-manager';
+import { SecurityPanel } from '@/components/settings/security-panel';
+import { SettingsOverview } from '@/components/settings/settings-overview';
+import { SettingsRail } from '@/components/settings/settings-rail';
+import {
+  resolveSection,
+  type SettingsSection,
+} from '@/components/settings/settings-sections';
+import { TemplateManager } from '@/components/settings/template-manager';
+import { WhatsAppConfig } from '@/components/settings/whatsapp-config';
+import { useAuth } from '@/hooks/use-auth';
+import { useTheme } from '@/hooks/use-theme';
+
+// `useSearchParams` opts this page out of static prerendering unless it
+// sits under a Suspense boundary. Without one, the production build hits
+// the "missing Suspense with CSR bailout" error and the whole page bails
+// to client-side rendering — shipping a settings screen whose rail never
+// wires up its click handlers. You land on the section the URL carried
+// (the account-menu Settings link points at `?tab=whatsapp`) and can't
+// navigate away. Mirror the login/signup split: a thin wrapper supplies
+// the boundary; the inner component reads the query string.
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsPageInner />
+    </Suspense>
+  );
+}
+
+function SettingsPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { defaultCurrency } = useAuth();
+  const { mode } = useTheme();
+
+  // The URL (`?tab=`) is the single source of truth for the active
+  // section. Unknown or empty values resolve to the Overview landing.
+  const section = resolveSection(searchParams.get('tab'));
+
+  const go = (next: SettingsSection) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', next);
+    router.replace(`/settings?${params.toString()}`, { scroll: false });
+  };
+
+  // Cheap, fetch-free rail hints. The Overview landing carries the
+  // full live status/counts; the rail just surfaces the two that are
+  // already in context.
+  const hints: Partial<Record<SettingsSection, ReactNode>> = useMemo(
+    () => ({
+      appearance: mode.charAt(0).toUpperCase() + mode.slice(1),
+      deals: defaultCurrency,
+    }),
+    [mode, defaultCurrency]
+  );
+
+  const panel: Record<SettingsSection, ReactNode> = {
+    overview: <SettingsOverview onSelect={go} />,
+    profile: <ProfileForm />,
+    security: <SecurityPanel />,
+    appearance: <AppearancePanel />,
+    whatsapp: <WhatsAppConfig />,
+    templates: <TemplateManager />,
+    'quick-replies': <QuickRepliesManager />,
+    fields: <FieldsAndTagsPanel />,
+    deals: <DealsSettings />,
+    members: <MembersTab />,
+    api: <ApiKeysSettings />,
+  };
+
+  return (
+    <div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          {'Configuración'}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {
+            'Todo en un solo lugar: tu cuenta y tu espacio de trabajo. Elige una sección para administrarla.'
+          }
+        </p>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[236px_minmax(0,1fr)] lg:items-start">
+        <SettingsRail active={section} onSelect={go} hints={hints} />
+        <div className="min-w-0">{panel[section]}</div>
+      </div>
+    </div>
+  );
+}

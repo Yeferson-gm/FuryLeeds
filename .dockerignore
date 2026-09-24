@@ -1,0 +1,22 @@
+# Deny the entire repository by default. Re-include only build/runtime inputs.
+**
+
+!package.json
+!bun.lock
+!tsconfig.json
+!next.config.ts
+!postcss.config.mjs
+!server.ts
+!LICENCE.md
+!Dockerfile
+
+!src/
+!src/**
+!public/
+!public/**
+
+# Keep migrations in the runtime image for controlled one-off releases.
+!drizzle/
+!drizzle/**
+!scripts/
+!scripts/migrate.ts

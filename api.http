@@ -1,0 +1,166 @@
+# FuryLeeds — colección de endpoints para integraciones externas
+#
+# Requisitos:
+# - Inicia FuryLeeds mediante `bun run dev` o `bun run start`.
+# - Crea una API key de una cuenta desde la administración del CRM.
+# - Sustituye únicamente los valores de ejemplo; nunca confirmes credenciales reales en Git.
+# - La API key debe incluir los scopes indicados en cada solicitud.
+#
+# ADVERTENCIA: las solicitudes marcadas con "EFECTO REAL" escriben datos o llaman a Meta.
+# Revísalas antes de ejecutarlas y utiliza siempre una cuenta de pruebas.
+
+@baseUrl = http://localhost:3000
+@apiKey = furyleeds_live_REEMPLAZAR
+@contactId = 00000000-0000-4000-8000-000000000000
+@conversationId = 00000000-0000-4000-8000-000000000000
+@broadcastId = 00000000-0000-4000-8000-000000000000
+@webhookId = 00000000-0000-4000-8000-000000000000
+@metaVerifyToken = REEMPLAZAR_TOKEN_DE_VERIFICACION
+@metaSignature = sha256=REEMPLAZAR_FIRMA_HMAC_DEL_CUERPO_EXACTO
+@cronSecret = REEMPLAZAR_SECRETO_CRON
+
+### Salud: confirma que el proceso HTTP está listo sin revelar dependencias ni secretos.
+GET {{baseUrl}}/health
+
+### Salud HEAD: variante usada por healthchecks cuando no se necesita cuerpo.
+HEAD {{baseUrl}}/health
+
+### Identidad API: valida la clave y muestra la cuenta y scopes asociados. Scope: ninguno adicional.
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{apiKey}}
+
+### Contactos: lista una página pequeña de contactos de la cuenta. Scope: contacts:read.
+GET {{baseUrl}}/api/v1/contacts?limit=10
+Authorization: Bearer {{apiKey}}
+
+### EFECTO REAL — Contactos: crea o reutiliza un contacto por teléfono normalizado. Scope: contacts:write.
+POST {{baseUrl}}/api/v1/contacts
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "phone": "+14155550123",
+  "name": "Contacto de integración",
+  "email": "integracion@example.com",
+  "company": "Empresa de prueba",
+  "tags": ["integracion"]
+}
+
+### Contactos: obtiene un contacto concreto de la misma cuenta. Scope: contacts:read.
+GET {{baseUrl}}/api/v1/contacts/{{contactId}}
+Authorization: Bearer {{apiKey}}
+
+### EFECTO REAL — Contactos: modifica únicamente los campos enviados. Scope: contacts:write.
+PATCH {{baseUrl}}/api/v1/contacts/{{contactId}}
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "name": "Contacto actualizado",
+  "company": "Empresa actualizada"
+}
+
+### Conversaciones: lista conversaciones con paginación por cursor. Scope: conversations:read.
+GET {{baseUrl}}/api/v1/conversations?limit=10
+Authorization: Bearer {{apiKey}}
+
+### Conversaciones: obtiene una conversación hidratada de la cuenta. Scope: conversations:read.
+GET {{baseUrl}}/api/v1/conversations/{{conversationId}}
+Authorization: Bearer {{apiKey}}
+
+### Mensajes: lista los mensajes de una conversación de la cuenta. Scope: messages:read.
+GET {{baseUrl}}/api/v1/conversations/{{conversationId}}/messages?limit=10
+Authorization: Bearer {{apiKey}}
+
+### EFECTO REAL — Mensajes: envía un mensaje de WhatsApp y puede crear contacto/conversación. Scope: messages:send.
+POST {{baseUrl}}/api/v1/messages
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "to": "+14155550123",
+  "name": "Destinatario de prueba",
+  "type": "text",
+  "text": "Mensaje de prueba enviado desde la API de FuryLeeds."
+}
+
+### EFECTO REAL — Difusiones: crea y despacha una campaña de plantilla mediante Meta. Scope: broadcasts:send.
+POST {{baseUrl}}/api/v1/broadcasts
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "name": "Campaña de integración",
+  "template_name": "plantilla_aprobada",
+  "template_language": "es",
+  "recipients": [
+    {
+      "to": "+14155550123",
+      "params": ["Cliente"]
+    }
+  ]
+}
+
+### Difusiones: consulta estado y contadores agregados de una campaña. Scope: broadcasts:send.
+GET {{baseUrl}}/api/v1/broadcasts/{{broadcastId}}
+Authorization: Bearer {{apiKey}}
+
+### Webhooks salientes: lista endpoints configurados sin devolver secretos. Scope: webhooks:manage.
+GET {{baseUrl}}/api/v1/webhooks
+Authorization: Bearer {{apiKey}}
+
+### EFECTO REAL — Webhooks salientes: registra un destino y revela su secreto una sola vez. Scope: webhooks:manage.
+POST {{baseUrl}}/api/v1/webhooks
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "url": "https://example.com/furyleeds/events",
+  "events": [
+    "message.received",
+    "message.status_updated",
+    "conversation.created"
+  ]
+}
+
+### Webhooks salientes: obtiene un endpoint de la cuenta sin revelar su secreto. Scope: webhooks:manage.
+GET {{baseUrl}}/api/v1/webhooks/{{webhookId}}
+Authorization: Bearer {{apiKey}}
+
+### EFECTO REAL — Webhooks salientes: actualiza URL, eventos o estado activo. Scope: webhooks:manage.
+PATCH {{baseUrl}}/api/v1/webhooks/{{webhookId}}
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "is_active": false
+}
+
+### EFECTO REAL — Webhooks salientes: elimina definitivamente el endpoint indicado. Scope: webhooks:manage.
+DELETE {{baseUrl}}/api/v1/webhooks/{{webhookId}}
+Authorization: Bearer {{apiKey}}
+
+### Meta: completa el desafío de verificación si el token coincide con una cuenta configurada.
+GET {{baseUrl}}/api/whatsapp/webhook?hub.mode=subscribe&hub.challenge=furyleeds-verification-challenge&hub.verify_token={{metaVerifyToken}}
+
+### EFECTO REAL — Meta: recibe un callback firmado sobre los bytes exactos del cuerpo.
+# No reutilices esta firma: debe calcularse con META_APP_SECRET para este cuerpo exacto.
+# Una firma inválida responde 401 y no procesa el evento.
+POST {{baseUrl}}/api/whatsapp/webhook
+Content-Type: application/json
+x-hub-signature-256: {{metaSignature}}
+
+{
+  "object": "whatsapp_business_account",
+  "entry": []
+}
+
+### EFECTO REAL — Cron: reclama y reanuda automatizaciones diferidas vencidas.
+# No ejecutes esta solicitud con el secreto real salvo en un entorno controlado.
+GET {{baseUrl}}/api/automations/cron
+x-cron-secret: {{cronSecret}}
+
+### EFECTO REAL — Cron: vence ejecuciones activas de flows según su política de timeout.
+# No ejecutes esta solicitud con el secreto real salvo en un entorno controlado.
+GET {{baseUrl}}/api/flows/cron
+x-cron-secret: {{cronSecret}}
