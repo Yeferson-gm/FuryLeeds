@@ -164,7 +164,8 @@ Inbound WhatsApp media mirroring is best-effort and repeats size checks before a
 - `X-Frame-Options: DENY` and CSP `frame-ancestors 'none'`.
 - strict-origin-when-cross-origin referrer policy.
 - camera/geolocation/payment/USB denied; microphone allowed same-origin for voice notes.
-- CSP allows same-origin plus HTTPS images/media and same-origin WebSocket connections, but is currently **report-only**, not enforcing.
+- CSP allows same-origin scripts, Cloudflare Web Analytics from `static.cloudflareinsights.com`, HTTPS images/media, same-origin WebSocket connections, and beacon delivery to `cloudflareinsights.com`, but is currently **report-only**, not enforcing. `script-src-elem` is explicit so injected `<script>` elements do not fall back ambiguously to `script-src`.
+- HTML remains transformable so Cloudflare Automatic Setup can inject its Web Analytics beacon. Browser privacy tools such as Brave Shields may independently block that request; application CSP cannot and must not override a user's local blocker.
 - Socket.IO validates same-host/canonical origin when an Origin header exists and authenticates the cookie during middleware.
 
 ## Rate limits

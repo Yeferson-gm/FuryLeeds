@@ -48,6 +48,7 @@ Supabase e InsForge no forman parte del runtime ni de la arquitectura activa.
 - `.dockerignore` usa allow-list; `.gitignore` conserva `.agents/skills/**` como fuente versionable.
 - `compose.yml` fue eliminado porque Docker Compose no es el método seleccionado.
 - `GET|HEAD /health` está implementado y probado para healthcheck/rollout de Dokploy.
+- Cloudflare Web Analytics Automatic Setup permanece habilitado. CSP permite explícitamente el beacon desde `static.cloudflareinsights.com`, su conexión a `cloudflareinsights.com` y declara `script-src-elem`; el HTML no usa `no-transform`. Brave u otros bloqueadores pueden impedir el beacon por decisión local, independientemente de CSP.
 
 ### Datos
 

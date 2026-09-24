@@ -39,7 +39,10 @@ const SECURITY_HEADERS = [
       // Next.js needs 'unsafe-inline' for its inline hydration script
       // and 'unsafe-eval' in dev + some production optimisations.
       // Nonce-based CSP is a later project.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com",
+      // Explicit element policy avoids fallback warnings for Cloudflare's
+      // automatically injected Web Analytics module.
+      "script-src-elem 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
       // Tailwind + inline style attributes on lots of components.
       "style-src 'self' 'unsafe-inline'",
       // Contact avatars (arbitrary https URLs paste-able from the UI),
@@ -50,7 +53,7 @@ const SECURITY_HEADERS = [
       "font-src 'self' data:",
       // Toda integración externa se ejecuta en el servidor.
       // Socket.IO runs on the same VPS and uses WebSocket exclusively.
-      "connect-src 'self' ws: wss:",
+      "connect-src 'self' ws: wss: https://cloudflareinsights.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

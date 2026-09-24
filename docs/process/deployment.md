@@ -61,6 +61,8 @@ In Dokploy Domains:
 
 Traefik must preserve WebSocket upgrades for `/socket.io`. Socket.IO is configured for WebSocket transport only and has no polling fallback.
 
+If the public domain is proxied through Cloudflare, keep **Web Analytics → Manage Site → Automatic setup** enabled for the FuryLeeds hostname. The report-only CSP explicitly permits `static.cloudflareinsights.com` for the beacon module and `cloudflareinsights.com` for manual-mode delivery; automatic setup normally posts to the same-origin `/cdn-cgi/rum` endpoint. Brave Shields and other blockers may still emit `ERR_BLOCKED_BY_CLIENT`; this is a client privacy decision, not a CSP or application failure.
+
 ## Docker image contract
 
 The multi-stage `Dockerfile`:
