@@ -86,6 +86,6 @@ Extensive coverage exists in `test/app/api/whatsapp/*` and `test/lib/whatsapp/*`
 
 - Keep raw-body verification before parsing and idempotency before all fan-out.
 - Add Meta message/template types through schema checks, parsers, send builders, persistence and tests together.
-- Never expose or store plaintext credentials.
+- Never expose or store plaintext credentials. Keep `ENCRYPTION_KEY` server-only and distinct from the webhook verification token shared with Meta.
 - Do not infer a tenant when Meta identifiers are absent or ambiguous.
 - Preserve monotonic delivery/recipient status handling and fast webhook acknowledgement.

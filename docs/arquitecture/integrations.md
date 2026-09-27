@@ -112,7 +112,7 @@ When `whatsapp_config.mirror_inbound_media` is not false, the webhook downloads 
 
 The adapter pins Graph API `v21.0` at `https://graph.facebook.com/v21.0`. Each CRM account has at most one `whatsapp_config`; a phone number ID is globally unique in the instance.
 
-Stored fields include numeric `phone_number_id`, optional WABA ID, encrypted access/verify tokens, connection/registration/subscription status and media-mirroring preference. AES-256-GCM encryption uses `ENCRYPTION_KEY`; access tokens are decrypted only server-side.
+Stored fields include numeric `phone_number_id`, optional WABA ID, encrypted access/verify tokens, connection/registration/subscription status and media-mirroring toggle. AES-256-GCM encryption uses the server-only `ENCRYPTION_KEY`; access tokens are decrypted only server-side. The webhook verification token is a separate customer-created secret shared with Meta and must never reuse the master encryption key.
 
 ### Connect/setup sequence
 
@@ -123,7 +123,7 @@ Stored fields include numeric `phone_number_id`, optional WABA ID, encrypted acc
 3. rejects a phone number already claimed by a different account;
 4. verifies the number with `GET /{phone-number-id}?fields=id,display_phone_number,verified_name,quality_rating`;
 5. when WABA is supplied, lists up to five pages of 100 WABA numbers and verifies that the phone number belongs to it;
-6. encrypts tokens;
+6. validates the server-only 64-hex-character `ENCRYPTION_KEY`, rejects using that master key as the webhook verification token, and encrypts credentials;
 7. for a new/changed number or supplied PIN, optionally calls `POST /{phone-number-id}/register` with `messaging_product: whatsapp` and PIN;
 8. calls idempotent `POST /{waba-id}/subscribed_apps` when WABA is present;
 9. inserts/updates the account config.

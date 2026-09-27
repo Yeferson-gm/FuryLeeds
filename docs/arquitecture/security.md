@@ -107,7 +107,7 @@ However, PostgreSQL RLS is not configured. Consequences:
 |---|---|
 | Better Auth secret | Environment variable `BETTER_AUTH_SECRET`; not stored in docs/source |
 | WhatsApp access and verify tokens | AES-256-GCM encrypted in `whatsapp_config`; random 12-byte IV and 16-byte auth tag; serialized as `iv:ciphertext:tag` hex |
-| Encryption key | `ENCRYPTION_KEY`, interpreted as hex bytes; UI error text expects 64 hex characters (32 bytes) |
+| Encryption key | `ENCRYPTION_KEY`, normalized for surrounding deployment whitespace/quotes, then validated as exactly 64 hex characters (32 bytes); it remains server-only |
 | Invitation token | 32 random bytes/base64url; SHA-256 hash only in DB; default expiry 7 days, hard maximum 365 days |
 | Public API key | 32 random bytes/base64url with prefix; SHA-256 hash only in DB |
 | Outbound webhook secret | 32 random bytes/base64url with `whsec_` prefix; AES-GCM encrypted in DB; plaintext returned once |
@@ -115,7 +115,7 @@ However, PostgreSQL RLS is not configured. Consequences:
 | Meta webhook | HMAC-SHA256 over the exact raw request body; one or more comma-separated app secrets; constant-time candidate comparisons |
 | Cron | Environment secret compared in constant time |
 
-Changing `ENCRYPTION_KEY` without rotating/re-encrypting stored data makes WhatsApp tokens and outbound webhook secrets unreadable. The WhatsApp config health endpoint detects token decryption failure and asks for reset.
+Changing `ENCRYPTION_KEY` without rotating/re-encrypting stored data makes WhatsApp tokens and outbound webhook secrets unreadable. The WhatsApp config health endpoint detects token decryption failure and asks for reset. The WhatsApp configuration route validates the master key before any Meta request and rejects reusing it as the public webhook verification token.
 
 ## Meta webhook security
 

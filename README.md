@@ -72,7 +72,7 @@ Names are documented here without values. See [`docs/arquitecture/integrations.m
 | `DATABASE_URL` | PostgreSQL connection used by Drizzle, migrations, and the realtime listener | yes |
 | `BETTER_AUTH_URL` | Canonical external application origin for auth links, trusted origin, and Socket.IO checks | no |
 | `BETTER_AUTH_SECRET` | Better Auth signing/session secret | yes |
-| `ENCRYPTION_KEY` | AES-256-GCM key for encrypted provider credentials and webhook secrets | yes |
+| `ENCRYPTION_KEY` | Server-only AES-256-GCM key: exactly 64 hexadecimal characters (32 bytes); never reuse it as a webhook verify token | yes |
 | `NODE_ENV` | Runtime mode; the production start script sets `production` | no |
 | `PORT` | Server port when the default is unsuitable | no |
 

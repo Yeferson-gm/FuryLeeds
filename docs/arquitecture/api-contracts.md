@@ -248,7 +248,7 @@ Headers include `X-FuryLeeds-Event`, `X-FuryLeeds-Webhook-Id`, and `X-FuryLeeds-
 | Method and path | Auth | Purpose |
 |---|---|---|
 | `GET /api/whatsapp/config` | Viewer | Verify stored config against Meta; returns `connected:false` diagnostic states as HTTP 200 for UI rendering. |
-| `POST /api/whatsapp/config` | Admin | Validate numeric IDs/token/WABA pairing/PIN, register number, subscribe WABA, encrypt and upsert one account config. |
+| `POST /api/whatsapp/config` | Admin | Validate server encryption configuration before provider effects; reject reusing `ENCRYPTION_KEY` as `verify_token`; validate numeric IDs/token/WABA pairing/PIN, register number, subscribe WABA, encrypt and upsert one account config. Invalid master-key configuration returns 500; secret reuse and invalid inputs return 400. |
 | `DELETE /api/whatsapp/config` | Admin | Remove/reset account WhatsApp configuration. |
 | `GET /api/whatsapp/config/details` | Viewer | Safe configuration details (without plaintext token). |
 | `PATCH /api/whatsapp/config/details` | Admin | Update supported non-secret details, including configuration options. |

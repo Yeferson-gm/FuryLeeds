@@ -2,7 +2,12 @@ import { and, eq, ne } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import { schema } from '@/lib/db';
-import { decrypt, encrypt } from '@/lib/whatsapp/encryption';
+import {
+  assertEncryptionConfigured,
+  decrypt,
+  encrypt,
+  isEncryptionKeyValue,
+} from '@/lib/whatsapp/encryption';
 import {
   getSubscribedApps,
   listWabaPhoneNumbers,
@@ -209,6 +214,33 @@ export async function POST(request: Request) {
       );
     }
 
+    try {
+      assertEncryptionConfigured();
+    } catch (error) {
+      console.error(
+        '[whatsapp/config] ENCRYPTION_KEY configuration is invalid:',
+        error instanceof Error ? error.message : 'unknown configuration error'
+      );
+      return NextResponse.json(
+        {
+          error:
+            'El cifrado del servidor no está configurado correctamente. En Dokploy, ENCRYPTION_KEY debe contener únicamente 64 caracteres hexadecimales; guarda la variable y vuelve a desplegar la aplicación.',
+        },
+        { status: 500 }
+      );
+    }
+
+    if (verify_token && isEncryptionKeyValue(verify_token)) {
+      return NextResponse.json(
+        {
+          error:
+            'El token de verificación del webhook no puede ser igual a ENCRYPTION_KEY. Crea un secreto diferente y configura ese mismo token en Meta.',
+          field: 'verify_token',
+        },
+        { status: 400 }
+      );
+    }
+
     // Meta ids are decimal digit strings. Catch the classic paste
     // mistakes (the +phone number, a display name, a URL) here with a
     // named field, instead of letting Meta answer "(#100) Unsupported
@@ -341,7 +373,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            'No se pudo cifrar el token. Comprueba que ENCRYPTION_KEY sea una cadena hexadecimal válida de 64 caracteres en las variables de entorno.',
+            'No se pudo cifrar el token con la configuración actual del servidor. Revisa ENCRYPTION_KEY en Dokploy y vuelve a desplegar la aplicación.',
         },
         { status: 500 }
       );

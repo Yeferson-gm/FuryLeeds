@@ -103,6 +103,8 @@ Configure runtime values in the Dokploy Environment tab or through an approved e
 - `BETTER_AUTH_SECRET`
 - `ENCRYPTION_KEY`
 
+Set `ENCRYPTION_KEY` to the value only: exactly 64 hexadecimal characters (32 bytes), without an `ENCRYPTION_KEY=` prefix. Surrounding whitespace or one matching quote pair is normalized defensively, but operators should store the bare value. Save the Dokploy environment change and redeploy/restart the application. This master key is not the WhatsApp webhook verification token and must never be pasted into the browser form or Meta.
+
 `PORT=3000` is the safe image default. In production `server.ts` binds internally to `0.0.0.0`; it does not consume the operating system/container `HOSTNAME`, because that value names the machine rather than the application's public origin. `BETTER_AUTH_URL` remains the canonical external HTTPS origin.
 
 ### Feature-required

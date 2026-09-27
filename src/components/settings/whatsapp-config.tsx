@@ -171,7 +171,7 @@ const COPY = {
   webhookUrl: 'URL de callback del webhook',
   webhookVerifyToken: 'Token de verificación del webhook',
   webhookVerifyTokenHint:
-    'Una cadena personalizada que tú creas. Debe coincidir con el token que configuraste en los ajustes de webhook de Meta.',
+    'Crea un secreto distinto de ENCRYPTION_KEY y usa este mismo valor en los ajustes del webhook de Meta. ENCRYPTION_KEY existe únicamente en Dokploy y nunca debe pegarse aquí.',
   webhookVerifyTokenPlaceholder: 'Crea un token de verificación personalizado',
 } as const;
 

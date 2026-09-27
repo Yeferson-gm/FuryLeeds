@@ -11,12 +11,59 @@ import crypto from 'node:crypto';
  * fail instead of returning corrupted credential data.
  */
 
-function getEncryptionKey(): string {
-  const key = process.env.ENCRYPTION_KEY;
-  if (!key) {
-    throw new Error('ENCRYPTION_KEY is not configured.');
+export class EncryptionConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'EncryptionConfigurationError';
+  }
+}
+
+function normalizedEncryptionKeyHex(): string {
+  const configured = process.env.ENCRYPTION_KEY;
+  if (!configured?.trim()) {
+    throw new EncryptionConfigurationError('ENCRYPTION_KEY is not configured.');
+  }
+
+  const trimmed = configured.trim();
+  const quote = trimmed[0];
+  const key =
+    trimmed.length >= 2 &&
+    (quote === '"' || quote === "'") &&
+    trimmed.at(-1) === quote
+      ? trimmed.slice(1, -1)
+      : trimmed;
+
+  if (!/^[0-9a-fA-F]{64}$/.test(key)) {
+    throw new EncryptionConfigurationError(
+      'ENCRYPTION_KEY must contain exactly 64 hexadecimal characters.'
+    );
+  }
+
+  return key.toLowerCase();
+}
+
+function getEncryptionKey(): Buffer {
+  const key = Buffer.from(normalizedEncryptionKeyHex(), 'hex');
+  if (key.length !== 32) {
+    throw new EncryptionConfigurationError(
+      'ENCRYPTION_KEY must decode to exactly 32 bytes.'
+    );
   }
   return key;
+}
+
+export function assertEncryptionConfigured(): void {
+  getEncryptionKey();
+}
+
+export function isEncryptionKeyValue(value: unknown): boolean {
+  if (typeof value !== 'string' || !/^[0-9a-fA-F]{64}$/.test(value.trim())) {
+    return false;
+  }
+
+  const candidate = Buffer.from(value.trim(), 'hex');
+  const configured = getEncryptionKey();
+  return crypto.timingSafeEqual(candidate, configured);
 }
 
 // 12 bytes is the NIST-recommended IV length for GCM — keeps the
@@ -27,11 +74,7 @@ const AUTH_TAG_LENGTH = 16;
 
 export function encrypt(text: string): string {
   const iv = crypto.randomBytes(GCM_IV_LENGTH);
-  const cipher = crypto.createCipheriv(
-    'aes-256-gcm',
-    Buffer.from(getEncryptionKey(), 'hex'),
-    iv
-  );
+  const cipher = crypto.createCipheriv('aes-256-gcm', getEncryptionKey(), iv);
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag();
@@ -64,7 +107,7 @@ export function decrypt(encryptedText: string): string {
   }
   const decipher = crypto.createDecipheriv(
     'aes-256-gcm',
-    Buffer.from(getEncryptionKey(), 'hex'),
+    getEncryptionKey(),
     iv
   );
   decipher.setAuthTag(authTag);

@@ -25,6 +25,7 @@ Supabase e InsForge no forman parte del runtime ni de la arquitectura activa.
 
 - `FuryLeeds` es la única marca visible y documental; `furyleeds` queda reservado a identificadores técnicos que requieren minúsculas.
 - Se migraron package/metadata, Better Auth, correos, UI, CSS, localStorage/eventos, prefijo `furyleeds_live_`, headers `X-FuryLeeds-*`, realtime PostgreSQL, pruebas, ejemplos, Docker y documentación.
+- El cifrado AES-256-GCM normaliza comillas/espacios externos de deployment y valida exactamente 64 caracteres hexadecimales antes de efectos con Meta. La configuración de WhatsApp rechaza reutilizar `ENCRYPTION_KEY` como token de verificación del webhook; son secretos distintos.
 - El cambio invalida intencionalmente API keys del prefijo retirado y reinicia preferencias locales del navegador bajo las claves nuevas; no existe shim de doble identidad.
 - El repositorio canónico es `git@github.com:Yeferson-gm/FuryLeeds.git`; el remoto y la historia anteriores fueron retirados antes de publicar el commit raíz.
 

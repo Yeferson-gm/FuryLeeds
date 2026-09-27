@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'bun:test';
-import { decrypt, encrypt } from '@/lib/whatsapp/encryption';
+import {
+  assertEncryptionConfigured,
+  decrypt,
+  encrypt,
+  isEncryptionKeyValue,
+} from '@/lib/whatsapp/encryption';
+
+const TEST_KEY = 'ab'.repeat(32);
+
+function withEncryptionKey<T>(value: string, callback: () => T): T {
+  const previous = process.env.ENCRYPTION_KEY;
+  process.env.ENCRYPTION_KEY = value;
+  try {
+    return callback();
+  } finally {
+    if (previous === undefined) delete process.env.ENCRYPTION_KEY;
+    else process.env.ENCRYPTION_KEY = previous;
+  }
+}
 
 describe('encryption', () => {
   describe('encrypt / decrypt round-trip', () => {
@@ -29,6 +47,48 @@ describe('encryption', () => {
     it('roundtrips multibyte UTF-8', () => {
       const ct = encrypt('token-✓-🔐-žąsis');
       expect(decrypt(ct)).toBe('token-✓-🔐-žąsis');
+    });
+  });
+
+  describe('ENCRYPTION_KEY configuration', () => {
+    it('accepts exactly 64 hexadecimal characters', () => {
+      withEncryptionKey(TEST_KEY, () => {
+        expect(() => assertEncryptionConfigured()).not.toThrow();
+        expect(decrypt(encrypt('secret'))).toBe('secret');
+      });
+    });
+
+    it('normalizes deployment whitespace and matching outer quotes', () => {
+      for (const configured of [
+        `  ${TEST_KEY}\n`,
+        `"${TEST_KEY}"`,
+        `'${TEST_KEY}'`,
+      ]) {
+        withEncryptionKey(configured, () => {
+          expect(decrypt(encrypt('secret'))).toBe('secret');
+        });
+      }
+    });
+
+    it('rejects incorrect length, non-hex content and variable assignments', () => {
+      for (const configured of [
+        TEST_KEY.slice(1),
+        `${TEST_KEY.slice(0, 63)}z`,
+        `ENCRYPTION_KEY=${TEST_KEY}`,
+      ]) {
+        withEncryptionKey(configured, () => {
+          expect(() => assertEncryptionConfigured()).toThrow(
+            /exactly 64 hexadecimal/
+          );
+        });
+      }
+    });
+
+    it('detects attempts to reuse the master key as another secret', () => {
+      withEncryptionKey(TEST_KEY, () => {
+        expect(isEncryptionKeyValue(TEST_KEY.toUpperCase())).toBe(true);
+        expect(isEncryptionKeyValue('different-webhook-token')).toBe(false);
+      });
     });
   });
 
