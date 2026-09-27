@@ -196,4 +196,4 @@ Start with [`AGENTS.md`](AGENTS.md) when working as an agent or contributor. The
 
 ## License
 
-FuryLeeds is private proprietary software owned by **CEDURS TECHNOLOGY GROUP S.A.C.** It is not open source and is not licensed for copying, modification, distribution, hosting, resale, or disclosure without prior express written authorization. See [`LICENCE.md`](LICENCE.md).
+FuryLeeds is private proprietary software owned by **CEDRUS TECHNOLOGY GROUP S.A.C.** It is not open source and is not licensed for copying, modification, distribution, hosting, resale, or disclosure without prior express written authorization. See [`LICENCE.md`](LICENCE.md).

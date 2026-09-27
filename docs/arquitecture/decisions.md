@@ -164,7 +164,7 @@ Statuses:
 - **Date:** 2026-09-24
 - **Status:** Accepted
 - **Context:** The product is an internal/private commercial system and is not intended for open-source licensing or unrestricted redistribution.
-- **Decision:** FuryLeeds and its first-party source, schema, documentation, designs, assets, and configuration are proprietary property of CEDURS TECHNOLOGY GROUP S.A.C. `package.json` declares `UNLICENSED`; `LICENCE.md` is the controlling repository notice.
+- **Decision:** FuryLeeds and its first-party source, schema, documentation, designs, assets, and configuration are proprietary property of CEDRUS TECHNOLOGY GROUP S.A.C. `package.json` declares `UNLICENSED`; `LICENCE.md` is the controlling repository notice.
 - **Consequences:** Access does not grant copying, modification, hosting, distribution, resale, disclosure, or derivative-work rights without express written authorization. Third-party dependencies retain their own licenses and must continue to be reviewed for compatibility.
 - **Links:** [Repository license](../../LICENCE.md), [Dependency policy](../process/dependency-policy.md).
 

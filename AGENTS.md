@@ -43,7 +43,7 @@ Do not reopen these decisions unless the user explicitly requests an architectur
 - TypeScript is strict and Biome owns linting/formatting.
 - Tailwind CSS v4 is the styling system.
 - Production deployment uses a Dokploy Application with the repository `Dockerfile`; Docker Compose is not an active deployment path.
-- The system is private proprietary software owned by CEDURS TECHNOLOGY GROUP S.A.C.
+- The system is private proprietary software owned by CEDRUS TECHNOLOGY GROUP S.A.C.
 
 ### Data
 

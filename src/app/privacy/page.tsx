@@ -5,7 +5,7 @@ import { LegalShell } from '@/components/legal/legal-shell';
 export const metadata: Metadata = {
   title: 'Política de privacidad',
   description:
-    'Política de privacidad de FuryLeeds y CEDURS TECHNOLOGY GROUP S.A.C.',
+    'Política de privacidad de FuryLeeds y CEDRUS TECHNOLOGY GROUP S.A.C.',
   alternates: { canonical: 'https://furyleeds.site/privacy' },
   robots: { index: true, follow: true },
 };
@@ -22,15 +22,15 @@ export default function PrivacyPage() {
         <p>
           FuryLeeds es un servicio de gestión de relaciones con clientes y
           mensajería empresarial operado por{' '}
-          <strong>CEDURS TECHNOLOGY GROUP S.A.C.</strong> (en adelante,
-          “CEDURS”, “FuryLeeds” o “nosotros”). Esta política se aplica a las
+          <strong>CEDRUS TECHNOLOGY GROUP S.A.C.</strong> (en adelante,
+          “CEDRUS”, “FuryLeeds” o “nosotros”). Esta política se aplica a las
           personas que crean o utilizan una cuenta FuryLeeds y a la información
           procesada mediante el servicio.
         </p>
         <p>
           Cuando una empresa cliente incorpora contactos, conversaciones u otra
           información de sus propios clientes, esa empresa determina los fines
-          de dicho tratamiento y CEDURS procesa la información para prestarle el
+          de dicho tratamiento y CEDRUS procesa la información para prestarle el
           servicio. Las consultas de esos contactos deben dirigirse primero a la
           empresa con la que mantienen la relación comercial.
         </p>
@@ -167,7 +167,7 @@ export default function PrivacyPage() {
           identificar correctamente sus registros.
         </p>
         <p>
-          Para una solicitud relacionada directamente con CEDURS, utiliza el
+          Para una solicitud relacionada directamente con CEDRUS, utiliza el
           canal corporativo oficialmente designado en tu contrato o comunicación
           de alta. No envíes contraseñas, tokens ni claves API. Podemos
           solicitar información razonable para verificar identidad y autoridad
@@ -192,7 +192,7 @@ export default function PrivacyPage() {
           operativos o del producto. Publicaremos la versión vigente en esta URL
           e indicaremos su fecha de entrada en vigor. Las consultas se atienden
           a través del propietario o administrador de la cuenta y del canal
-          corporativo oficialmente designado por CEDURS TECHNOLOGY GROUP S.A.C.
+          corporativo oficialmente designado por CEDRUS TECHNOLOGY GROUP S.A.C.
         </p>
       </section>
     </LegalShell>

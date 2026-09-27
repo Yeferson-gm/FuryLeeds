@@ -88,7 +88,7 @@ export function LegalShell({
               Responsable del servicio
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              CEDURS TECHNOLOGY GROUP S.A.C., titular y operador de FuryLeeds.
+              CEDRUS TECHNOLOGY GROUP S.A.C., titular y operador de FuryLeeds.
             </p>
             <div className="mt-5 border-t border-border pt-5">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

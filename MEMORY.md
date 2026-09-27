@@ -43,7 +43,7 @@ Supabase e InsForge no forman parte del runtime ni de la arquitectura activa.
 
 ### Deployment y propiedad
 
-- FuryLeeds quedó declarado como software privado propietario de CEDURS TECHNOLOGY GROUP S.A.C. en `LICENCE.md` y `package.json` usa `UNLICENSED`.
+- FuryLeeds quedó declarado como software privado propietario de CEDRUS TECHNOLOGY GROUP S.A.C. en `LICENCE.md` y `package.json` usa `UNLICENSED`.
 - El deployment aceptado es Dokploy Application con método Dockerfile, contexto `.`, etapa final `runner` y puerto interno `3000`.
 - `Dockerfile` usa Bun 1.4 multi-stage, dependencias congeladas, usuario no root, `server.ts`, healthcheck y artefactos mínimos. La imagen excluye migraciones y scripts operativos; Dokploy solo construye e inicia la aplicación.
 - `.dockerignore` usa allow-list; `.gitignore` conserva `.agents/skills/**` como fuente versionable.

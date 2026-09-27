@@ -41,10 +41,10 @@ export default function DataDeletionPage() {
           precisión. Indica el número de WhatsApp utilizado y pide expresamente
           acceso, corrección o eliminación.
         </p>
-        <h3>Solicitud directa a CEDURS</h3>
+        <h3>Solicitud directa a CEDRUS</h3>
         <p>
           Si no puedes contactar al responsable anterior, utiliza el canal
-          corporativo oficialmente designado por CEDURS TECHNOLOGY GROUP S.A.C.
+          corporativo oficialmente designado por CEDRUS TECHNOLOGY GROUP S.A.C.
           en el contrato, propuesta o comunicación de alta de FuryLeeds.
         </p>
       </section>
@@ -67,7 +67,7 @@ export default function DataDeletionPage() {
           </li>
           <li>
             Envía la solicitud al propietario/administrador del espacio o al
-            canal corporativo oficialmente designado por CEDURS.
+            canal corporativo oficialmente designado por CEDRUS.
           </li>
           <li>
             Atiende la verificación de identidad y autoridad. Podemos pedir

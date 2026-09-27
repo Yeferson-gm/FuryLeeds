@@ -91,7 +91,7 @@ Owns a three-step accessible state machine: request code, enter code/new passwor
 
 ### `/privacy`, `/terms`, and `/data-deletion`
 
-Public, indexable legal documents with canonical URLs under `https://furyleeds.site`. They identify CEDURS TECHNOLOGY GROUP S.A.C., document verified data/provider behavior, link to one another, and remain accessible without a session. The deletion page provides explicit steps for account users, WhatsApp contacts, and Meta-originated requests without claiming an unavailable self-service deletion endpoint. `LegalShell` supplies the shared graphite editorial layout; auth pages link to all three documents.
+Public, indexable legal documents with canonical URLs under `https://furyleeds.site`. They identify CEDRUS TECHNOLOGY GROUP S.A.C., document verified data/provider behavior, link to one another, and remain accessible without a session. The deletion page provides explicit steps for account users, WhatsApp contacts, and Meta-originated requests without claiming an unavailable self-service deletion endpoint. `LegalShell` supplies the shared graphite editorial layout; auth pages link to all three documents.
 
 ### `/join/[token]`
 

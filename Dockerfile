@@ -25,7 +25,7 @@ RUN bun run build
 
 FROM base AS runner
 LABEL org.opencontainers.image.title="FuryLeeds" \
-      org.opencontainers.image.vendor="CEDURS TECHNOLOGY GROUP S.A.C." \
+      org.opencontainers.image.vendor="CEDRUS TECHNOLOGY GROUP S.A.C." \
       org.opencontainers.image.licenses="LicenseRef-Proprietary"
 
 ENV NODE_ENV=production \

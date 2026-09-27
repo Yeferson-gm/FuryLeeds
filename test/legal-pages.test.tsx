@@ -34,7 +34,7 @@ describe('Meta legal pages', () => {
 
       expect(page.metadata.robots).toEqual({ index: true, follow: true });
       expect(html).toContain(page.requiredText);
-      expect(html).toContain('CEDURS TECHNOLOGY GROUP S.A.C.');
+      expect(html).toContain('CEDRUS TECHNOLOGY GROUP S.A.C.');
       expect(html).toContain('href="/privacy"');
       expect(html).toContain('href="/terms"');
       expect(html).toContain('href="/data-deletion"');

@@ -5,7 +5,7 @@ import { LegalShell } from '@/components/legal/legal-shell';
 export const metadata: Metadata = {
   title: 'Condiciones del servicio',
   description:
-    'Condiciones aplicables al acceso y uso de FuryLeeds, operado por CEDURS TECHNOLOGY GROUP S.A.C.',
+    'Condiciones aplicables al acceso y uso de FuryLeeds, operado por CEDRUS TECHNOLOGY GROUP S.A.C.',
   alternates: { canonical: 'https://furyleeds.site/terms' },
   robots: { index: true, follow: true },
 };
@@ -15,7 +15,7 @@ export default function TermsPage() {
     <LegalShell
       eyebrow="Documento legal · 02"
       title="Condiciones del servicio"
-      summary="Estas condiciones regulan el acceso a FuryLeeds y complementan el acuerdo comercial celebrado con CEDURS TECHNOLOGY GROUP S.A.C."
+      summary="Estas condiciones regulan el acceso a FuryLeeds y complementan el acuerdo comercial celebrado con CEDRUS TECHNOLOGY GROUP S.A.C."
     >
       <section id="aceptacion">
         <h2>1. Aceptación</h2>
@@ -24,7 +24,7 @@ export default function TermsPage() {
           aceptas estas condiciones y la{' '}
           <Link href="/privacy">Política de privacidad</Link>. Si actúas en
           representación de una empresa, declaras tener autoridad para
-          obligarla. Si existe un contrato escrito con CEDURS, dicho contrato
+          obligarla. Si existe un contrato escrito con CEDRUS, dicho contrato
           prevalece ante cualquier contradicción específica.
         </p>
       </section>
@@ -104,8 +104,8 @@ export default function TermsPage() {
         <h2>7. Datos y propiedad</h2>
         <p>
           El cliente conserva los derechos que tenga sobre sus datos. Autoriza a
-          CEDURS y a sus proveedores a tratarlos en la medida necesaria para
-          prestar, proteger y mantener FuryLeeds. CEDURS conserva todos los
+          CEDRUS y a sus proveedores a tratarlos en la medida necesaria para
+          prestar, proteger y mantener FuryLeeds. CEDRUS conserva todos los
           derechos sobre el software, diseño, documentación, marcas y mejoras
           del servicio. Ninguna disposición transfiere propiedad intelectual.
         </p>
@@ -151,7 +151,7 @@ export default function TermsPage() {
         <h2>11. Garantías y responsabilidad</h2>
         <p>
           FuryLeeds se proporciona conforme al acuerdo aplicable y, en la máxima
-          medida permitida por ley, sin garantías implícitas adicionales. CEDURS
+          medida permitida por ley, sin garantías implícitas adicionales. CEDRUS
           no responde por decisiones comerciales del cliente, contenido enviado,
           uso ilícito, pérdida causada por credenciales comprometidas ni fallos
           de proveedores externos. Cualquier límite de responsabilidad se regirá
@@ -163,7 +163,7 @@ export default function TermsPage() {
         <h2>12. Legislación, cambios y contacto</h2>
         <p>
           Estas condiciones se interpretan junto con la legislación y
-          jurisdicción establecidas en el acuerdo entre CEDURS y el cliente.
+          jurisdicción establecidas en el acuerdo entre CEDRUS y el cliente.
           Podemos actualizarlas publicando una nueva versión en esta URL. Para
           consultas, utiliza el canal corporativo oficialmente designado en tu
           contrato o comunícate con el propietario o administrador de tu espacio

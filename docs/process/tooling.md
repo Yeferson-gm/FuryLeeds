@@ -70,7 +70,7 @@ The code contains OpenAI and Anthropic adapters with account-configured credenti
 - `Dockerfile`: multi-stage, non-root Bun image used by the Dokploy Dockerfile build method; production binding is fixed to `0.0.0.0` by `server.ts`.
 - `.dockerignore`: deny-by-default context allow-list for build/runtime inputs.
 - `.gitignore`: excludes local/generated/secrets while explicitly keeping `.agents/skills/**` trackable.
-- `LICENCE.md`: proprietary license owned by CEDURS TECHNOLOGY GROUP S.A.C.
+- `LICENCE.md`: proprietary license owned by CEDRUS TECHNOLOGY GROUP S.A.C.
 - `compose.yml`: intentionally absent; Docker Compose is not an active deployment method.
 
 ## Database workflow
