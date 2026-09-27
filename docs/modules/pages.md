@@ -17,6 +17,9 @@
 | `/login` | `(auth)/login/page.tsx` | Public | Email/password or Google sign-in |
 | `/signup` | `(auth)/signup/page.tsx` | Public | Email/password or Google registration |
 | `/forgot-password` | `(auth)/forgot-password/page.tsx` | Public | Request and consume password-reset OTP |
+| `/privacy` | `privacy/page.tsx` | Public, indexable | Privacy policy required for Meta publication |
+| `/terms` | `terms/page.tsx` | Public, indexable | Service terms required for Meta publication |
+| `/data-deletion` | `data-deletion/page.tsx` | Public, indexable | Explicit user-data deletion instructions for Meta |
 | `/join/[token]` | `join/[token]/page.tsx` | Hybrid | Preview and redeem team invitation |
 | `/dashboard` | `(dashboard)/dashboard/page.tsx` | Authenticated | CRM overview and analytics |
 | `/inbox` | `(dashboard)/inbox/page.tsx` | Authenticated | Realtime conversation workspace |
@@ -85,6 +88,10 @@ A server component that immediately calls `redirect('/dashboard')`. Authenticati
 ### `/forgot-password`
 
 Owns a three-step accessible state machine: request code, enter code/new password, and completion. It calls `authClient.emailOtp.requestPasswordReset` with non-enumerating copy, then `authClient.emailOtp.resetPassword` with normalized six-digit input and matching passwords of at least eight characters. Codes use `autocomplete="one-time-code"`, numeric input semantics, a 10-minute expiry, resend action, inline field/recovery errors, Sileo request failures, and no recovery secret in the URL. Success confirms that the password is usable and links back to login.
+
+### `/privacy`, `/terms`, and `/data-deletion`
+
+Public, indexable legal documents with canonical URLs under `https://furyleeds.site`. They identify CEDURS TECHNOLOGY GROUP S.A.C., document verified data/provider behavior, link to one another, and remain accessible without a session. The deletion page provides explicit steps for account users, WhatsApp contacts, and Meta-originated requests without claiming an unavailable self-service deletion endpoint. `LegalShell` supplies the shared graphite editorial layout; auth pages link to all three documents.
 
 ### `/join/[token]`
 

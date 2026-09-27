@@ -47,4 +47,14 @@ describe('proxy de autenticación', () => {
     const response = await proxy(new NextRequest('https://app.test/dashboard'));
     expect(response.headers.get('location')).toBeNull();
   });
+
+  for (const pathname of ['/privacy', '/terms', '/data-deletion']) {
+    it(`mantiene pública la ruta legal ${pathname}`, async () => {
+      const response = await proxy(
+        new NextRequest(`https://furyleeds.site${pathname}`)
+      );
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
+    });
+  }
 });

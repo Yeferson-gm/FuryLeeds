@@ -471,4 +471,75 @@ html[data-furyleeds-mode-transition="active"]::view-transition-group(root) {
       transparent 100%
     );
   }
+
+  .legal-content section {
+    scroll-margin-top: 2rem;
+  }
+
+  .legal-content h2 {
+    margin-bottom: 0.875rem;
+    color: var(--foreground);
+    font-size: 1.125rem;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+  }
+
+  .legal-content h3 {
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: var(--foreground);
+    font-size: 0.9375rem;
+    font-weight: 650;
+  }
+
+  .legal-content p,
+  .legal-content li {
+    color: var(--muted-foreground);
+    font-size: 0.9375rem;
+    line-height: 1.75;
+  }
+
+  .legal-content p + p {
+    margin-top: 0.875rem;
+  }
+
+  .legal-content ul,
+  .legal-content ol {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.875rem;
+    padding-left: 1.25rem;
+  }
+
+  .legal-content ul {
+    list-style: square;
+  }
+
+  .legal-content ol {
+    list-style: decimal;
+  }
+
+  .legal-content strong {
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  .legal-content a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklab, var(--primary) 45%, transparent);
+    text-underline-offset: 0.2em;
+  }
+
+  .legal-content a:hover {
+    text-decoration-color: var(--primary);
+  }
+
+  .legal-content .legal-note {
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--primary);
+    border-radius: var(--radius);
+    background: color-mix(in oklab, var(--card) 88%, transparent);
+    padding: 1rem 1.125rem;
+  }
 }

@@ -23,11 +23,17 @@
 | `agents/ai-playground.tsx` — `AiPlayground` | Chat-like test surface for the configured AI agent. | Local turns, prompt input, send state and scroll ref; `POST /api/ai/playground`; `Button`, `cn`. | Visible to authenticated users. Keep test calls isolated from customer conversations; preserve setup callback for missing configuration. |
 | `agents/ai-usage.tsx` — `AiUsageCard` | Usage/cost chart and period selection. | 30-day default window, loading/data state; `/api/ai/usage?days=`; auth/default currency, role helpers, Tremor chart/select/card/date formatting. | Parent `/agents` shows it only to admin/owner. New metrics should preserve currency/date aggregation contract. |
 
+## Legal
+
+| File / exports | Responsibility | Dependencies and state/data | Permissions / extension notes |
+|---|---|---|---|
+| `legal/legal-shell.tsx` — `LegalShell` | Shared public graphite/editorial shell, legal navigation, operator identity and effective date for privacy, terms and deletion pages. | Server component; Next links, Lucide brand/security icons, global legal typography classes. | Public and indexable. Keep all legal routes mutually linked and do not add unverified contact details or operational promises. |
+
 ## Authentication UI and gates
 
 | File / exports | Responsibility | Dependencies and state/data | Permissions / extension notes |
 |---|---|---|---|
-| `auth/auth-page-shell.tsx` — `AuthPageShell` | Shared graphite shell for login, signup, password recovery/reset, and invitation redemption; owns the single FuryLeeds mark, optional auth tabs, atmospheric grid, panel boundary, and protected-access footer. | Server-safe composition with Next links, semantic navigation, and `cn`; no remote state. | Public. Preserve one product mark per page, keyboard focus, invitation-aware tab links, and responsive centering. |
+| `auth/auth-page-shell.tsx` — `AuthPageShell` | Shared graphite shell for login, signup, password recovery/reset, and invitation redemption; owns the single FuryLeeds mark, optional auth tabs, atmospheric grid, panel boundary, protected-access copy, and legal links. | Server-safe composition with Next links, semantic navigation, and `cn`; no remote state. | Public. Preserve one product mark per page, keyboard focus, invitation-aware tab links, legal navigation, and responsive centering. |
 | `auth/require-role.tsx` — `RequireRole` | Conditional render by minimum account role, with optional fallback. | `useAuth`, `hasMinRole`; no remote state. | Returns fallback while unresolved/under-ranked. UI-only; mirror checks on the server. |
 
 ## Automations

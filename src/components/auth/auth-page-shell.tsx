@@ -89,6 +89,29 @@ export function AuthPageShell({
           Acceso protegido para equipos que gestionan conversaciones de
           WhatsApp.
         </p>
+        <nav
+          className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2"
+          aria-label="Información legal"
+        >
+          <Link
+            href="/privacy"
+            className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Privacidad
+          </Link>
+          <Link
+            href="/terms"
+            className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Condiciones
+          </Link>
+          <Link
+            href="/data-deletion"
+            className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Eliminar datos
+          </Link>
+        </nav>
       </div>
     </main>
   );

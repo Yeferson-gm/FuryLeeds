@@ -101,7 +101,8 @@ Se creó una documentación completa y enlazada:
 - módulos: todos los dominios, páginas, 107 componentes y 10 hooks;
 - proceso: intake, DoD, seguridad, testing, dependencias, upgrades, deploy, observabilidad, performance, Git, fallos, tooling y documentación;
 - deuda: `docs/TODO.md` con hallazgos priorizados, contexto, impacto y siguiente paso;
-- inventarios completos de 102 archivos API / 149 combinaciones método-ruta y 23 rutas UI.
+- inventarios completos de 102 archivos API / 149 combinaciones método-ruta y 26 rutas UI.
+- páginas legales públicas e indexables para Meta: `/privacy`, `/terms` y `/data-deletion`, con URLs canónicas en `furyleeds.site`, navegación cruzada e instrucciones explícitas de eliminación coherentes con las capacidades reales del sistema.
 
 
 ## Última validación confirmada
