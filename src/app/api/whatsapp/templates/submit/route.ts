@@ -214,7 +214,10 @@ export async function POST(request: Request) {
               ? 'Meta rate limit hit (100 template creates per hour). Try again later.'
               : message,
           },
-          { status: isRateLimit ? 429 : 502 }
+          // Use 424 instead of 502 for a completed request that Meta rejected.
+          // Some reverse proxies replace 502 bodies with an HTML gateway page,
+          // which hides Meta's actionable JSON error from the dashboard.
+          { status: isRateLimit ? 429 : 424 }
         );
       }
     }
