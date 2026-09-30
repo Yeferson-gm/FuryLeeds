@@ -266,6 +266,27 @@ const COMMON_LANGUAGE_CODES = [
   'lt',
 ];
 
+function templateSubmitErrorMessage(
+  data: Record<string, unknown>,
+  fallback: string
+): string {
+  const message = typeof data.error === 'string' ? data.error : fallback;
+  if (!data.meta || typeof data.meta !== 'object') return message;
+
+  const meta = data.meta as Record<string, unknown>;
+  const diagnostics = [
+    typeof meta.code === 'number' ? `código ${meta.code}` : null,
+    typeof meta.subcode === 'number' ? `subcódigo ${meta.subcode}` : null,
+    typeof meta.fbtrace_id === 'string' && meta.fbtrace_id
+      ? `trace ${meta.fbtrace_id}`
+      : null,
+  ].filter((value): value is string => value !== null);
+
+  return diagnostics.length > 0
+    ? `${message} (Meta: ${diagnostics.join(', ')})`
+    : message;
+}
+
 function emptyButton(type: TemplateButton['type']): TemplateButton {
   switch (type) {
     case 'QUICK_REPLY':
@@ -434,8 +455,10 @@ export function TemplateManager() {
       const data = await readJsonResponse(res);
       if (!res.ok) {
         throw new Error(
-          (typeof data.error === 'string' && data.error) ||
+          templateSubmitErrorMessage(
+            data,
             `${isEdit ? 'Error al editar' : 'Error al enviar'} (HTTP ${res.status})`
+          )
         );
       }
       // Refresh first, then close — re-opening the dialog
