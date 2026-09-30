@@ -276,7 +276,7 @@ Headers include `X-FuryLeeds-Event`, `X-FuryLeeds-Webhook-Id`, and `X-FuryLeeds-
 | `GET /api/templates` | Viewer | Read local message templates for UI. |
 | `PATCH /api/whatsapp/templates/{id}` | Admin | Edit local/Meta template as supported; dry-run environment flag honored. |
 | `DELETE /api/whatsapp/templates/{id}` | Admin | Delete local/Meta template as supported. |
-| `POST /api/whatsapp/templates/submit` | Admin | Validate and submit template to Meta; supports dry-run. A completed request rejected by Meta returns JSON with HTTP `424` so reverse proxies do not replace the actionable provider error with a generic `502` page; Meta rate limits remain `429`. |
+| `POST /api/whatsapp/templates/submit` | Admin | Validate and submit template to Meta; supports dry-run. A completed request rejected by Meta returns JSON with HTTP `424` so reverse proxies do not replace the actionable provider error with a generic `502` page; the safe response appends Meta `error_data.details` when available and includes `meta.code`, `meta.subcode`, and `meta.fbtrace_id` for support diagnostics. Meta rate limits remain `429`. |
 | `POST /api/whatsapp/templates/sync` | Admin | Synchronize templates/status from Meta. |
 
 ## Files API

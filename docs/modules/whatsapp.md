@@ -31,7 +31,7 @@ Owns Meta WhatsApp Cloud API credentials/configuration, number registration and 
 | `/api/whatsapp/react` | POST | Agent+ rate-limited reaction mutation. |
 | `/api/whatsapp/media/:mediaId` | GET | Session; tenant credentialed Meta media proxy. |
 | `/api/templates` | GET | Viewer+; local template catalog. |
-| `/api/whatsapp/templates/submit` | POST | Admin+; validate/create local row and submit to Meta. Meta submission rejection returns JSON `424` (`429` for provider rate limits) so the dashboard retains the actionable provider message through reverse proxies. |
+| `/api/whatsapp/templates/submit` | POST | Admin+; validate/create local row and submit to Meta. Meta submission rejection returns JSON `424` (`429` for provider rate limits) so the dashboard retains the provider message and safe details/code/subcode/trace identifier through reverse proxies. |
 | `/api/whatsapp/templates/sync` | POST | Admin+; import/update templates from Meta. |
 | `/api/whatsapp/templates/:id` | PATCH, DELETE | Admin+; edit/delete locally and at Meta; supports dry-run behavior. |
 | `/api/whatsapp/webhook` | GET | Meta challenge verification against configured verify tokens. |

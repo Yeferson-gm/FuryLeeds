@@ -9,7 +9,7 @@ import {
 import { schema } from '@/lib/db';
 import { toMessageTemplate, type WhatsAppQueryDb } from '@/lib/whatsapp/db';
 import { decrypt } from '@/lib/whatsapp/encryption';
-import { submitMessageTemplate } from '@/lib/whatsapp/meta-api';
+import { MetaApiError, submitMessageTemplate } from '@/lib/whatsapp/meta-api';
 import { buildMetaTemplatePayload } from '@/lib/whatsapp/template-components';
 import { ensureMediaHeaderHandle } from '@/lib/whatsapp/template-header-handle';
 import { normalizeStatus } from '@/lib/whatsapp/template-status-normalize';
@@ -196,7 +196,16 @@ export async function POST(request: Request) {
         metaTemplateId = meta.id;
         metaStatus = meta.status;
       } catch (e) {
-        const message = e instanceof Error ? e.message : 'Meta submit failed.';
+        const baseMessage =
+          e instanceof Error ? e.message : 'Meta submit failed.';
+        const details =
+          e instanceof MetaApiError && e.details?.trim()
+            ? e.details.trim()
+            : null;
+        const message =
+          details && !baseMessage.includes(details)
+            ? `${baseMessage}: ${details}`
+            : baseMessage;
         // Persist the failure so the user can retry; row stays DRAFT
         // until they fix and re-submit.
         await upsertTemplateRow(
@@ -207,12 +216,22 @@ export async function POST(request: Request) {
             submissionError: message,
           })
         );
-        const isRateLimit = /\b429\b/.test(message);
+        const isRateLimit =
+          (e instanceof MetaApiError && e.httpStatus === 429) ||
+          /\b429\b/.test(message);
         return NextResponse.json(
           {
             error: isRateLimit
               ? 'Meta rate limit hit (100 template creates per hour). Try again later.'
               : message,
+            meta:
+              e instanceof MetaApiError
+                ? {
+                    code: e.code,
+                    subcode: e.subcode,
+                    fbtrace_id: e.fbtraceId,
+                  }
+                : undefined,
           },
           // Use 424 instead of 502 for a completed request that Meta rejected.
           // Some reverse proxies replace 502 bodies with an HTML gateway page,
