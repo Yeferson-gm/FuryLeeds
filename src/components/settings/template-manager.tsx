@@ -408,6 +408,14 @@ export function TemplateManager() {
     setDialogOpen(true);
   }
 
+  async function readJsonResponse(
+    response: Response
+  ): Promise<Record<string, unknown>> {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.toLowerCase().includes('application/json')) return {};
+    return (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  }
+
   async function handleSubmit() {
     // AUTHENTICATION is blocked by the persistent banner + disabled
     // submit button; this is a defensive second line of defense.
@@ -423,14 +431,13 @@ export function TemplateManager() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildSubmitPayload()),
       });
+      const data = await readJsonResponse(res);
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(
-          data?.error ||
+          (typeof data.error === 'string' && data.error) ||
             `${isEdit ? 'Error al editar' : 'Error al enviar'} (HTTP ${res.status})`
         );
       }
-      const data = await res.json();
       // Refresh first, then close — re-opening the dialog
       // immediately should not show a stale list.
       if (user) await fetchTemplates();
@@ -461,13 +468,13 @@ export function TemplateManager() {
       const res = await fetch('/api/whatsapp/templates/sync', {
         method: 'POST',
       });
+      const data = await readJsonResponse(res);
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(
-          data?.error || `Error al sincronizar (HTTP ${res.status})`
+          (typeof data.error === 'string' && data.error) ||
+            `Error al sincronizar (HTTP ${res.status})`
         );
       }
-      const data = await res.json();
       toast.success(
         `${data.total} ${data.total === 1 ? 'plantilla sincronizada' : 'plantillas sincronizadas'} desde Meta` +
           (data.inserted || data.updated

@@ -167,8 +167,8 @@ Interactive limits enforced in adapter code:
 
 The adapter supports:
 
-- resumable media upload using `META_APP_ID` and the account access token;
-- `POST /{waba-id}/message_templates` submission;
+- resumable media upload using `META_APP_ID` and the account access token, with each session/upload request bounded to 20 seconds;
+- `POST /{waba-id}/message_templates` submission, bounded to 20 seconds;
 - `POST /{meta-template-id}` editing;
 - `DELETE /{waba-id}/message_templates?name=...&hsm_id=...` deletion;
 - local synchronization and webhook-driven status/quality/components updates.

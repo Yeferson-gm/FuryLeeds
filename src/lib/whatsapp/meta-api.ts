@@ -13,6 +13,7 @@ import { isBusinessScopedUserId } from './wa-identity';
 
 const META_API_VERSION = 'v21.0';
 const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
+const META_TEMPLATE_REQUEST_TIMEOUT_MS = 20_000;
 
 export interface MetaSendResult {
   messageId: string;
@@ -639,7 +640,10 @@ export async function uploadResumableMedia(
   });
   const startRes = await fetch(
     `${META_API_BASE}/${appId}/uploads?${startParams.toString()}`,
-    { method: 'POST' }
+    {
+      method: 'POST',
+      signal: AbortSignal.timeout(META_TEMPLATE_REQUEST_TIMEOUT_MS),
+    }
   );
   if (!startRes.ok) {
     throw await readMetaError(
@@ -663,6 +667,7 @@ export async function uploadResumableMedia(
     // Uint8Array is a valid BodyInit at runtime; cast around the
     // lib.dom ArrayBufferLike-vs-ArrayBuffer generic mismatch.
     body: bytes as unknown as BodyInit,
+    signal: AbortSignal.timeout(META_TEMPLATE_REQUEST_TIMEOUT_MS),
   });
   if (!uploadRes.ok) {
     throw await readMetaError(
@@ -722,6 +727,7 @@ export async function submitMessageTemplate(
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(META_TEMPLATE_REQUEST_TIMEOUT_MS),
   });
   if (!response.ok) {
     throw await readMetaError(
