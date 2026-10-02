@@ -7,6 +7,8 @@ import {
   UnauthorizedError,
 } from '@/lib/auth/account';
 import { schema } from '@/lib/db';
+import { jsonbValue } from '@/lib/db/jsonb';
+import { safeDatabaseError } from '@/lib/db/safe-error';
 import { toMessageTemplate } from '@/lib/whatsapp/db';
 import { decrypt } from '@/lib/whatsapp/encryption';
 import {
@@ -168,8 +170,8 @@ export async function PATCH(
         headerHandle: payload.header_handle ?? null,
         bodyText: payload.body_text,
         footerText: payload.footer_text ?? null,
-        buttons: payload.buttons ?? null,
-        sampleValues: payload.sample_values ?? null,
+        buttons: jsonbValue(payload.buttons),
+        sampleValues: jsonbValue(payload.sample_values),
         status: 'PENDING',
         submissionError: null,
         rejectionReason: null,
@@ -196,12 +198,9 @@ export async function PATCH(
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return toErrorResponse(error);
     }
-    console.error('Error editing template:', error);
+    console.error('Error editing template:', safeDatabaseError(error));
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Failed to edit template.',
-      },
+      { error: 'Failed to persist the edited template locally.' },
       { status: 500 }
     );
   }

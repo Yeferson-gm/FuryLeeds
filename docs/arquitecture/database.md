@@ -1,6 +1,6 @@
 # Database Architecture
 
-> This describes `src/lib/db/auth-schema.ts`, `src/lib/db/crm-schema.ts`, `src/lib/db/relations.ts`, the five SQL migrations in `drizzle/`, and their runtime use.
+> This describes `src/lib/db/auth-schema.ts`, `src/lib/db/crm-schema.ts`, `src/lib/db/relations.ts`, the seven SQL migrations in `drizzle/`, and their runtime use.
 
 Related: [Architecture](./architecture.md) · [Security](./security.md) · [Realtime](./realtime.md) · [API contracts](./api-contracts.md)
 
@@ -111,7 +111,7 @@ The naming collision is important: singular `account` is Better Auth identity da
 
 | Table | Purpose and important constraints |
 |---|---|
-| `message_templates` | Account template mirror with Meta ID/status/quality/rejection/submission fields, header/body/footer/buttons/sample values. Categories are `Marketing/Utility/Authentication`; header types are text/image/video/document; buttons are capped at 10 by a JSON check. Unique `(user_id, name, language)`. |
+| `message_templates` | Account template mirror with Meta ID/status/quality/rejection/submission fields, header/body/footer/buttons/sample values. Categories are `Marketing/Utility/Authentication`; header types are text/image/video/document; buttons are capped at 10 by a JSON check. Template JSON writes use explicit PostgreSQL `::jsonb` binding because implicit Bun.SQL/Drizzle inference can double-encode arrays/objects as JSON strings. Unique `(user_id, name, language)`. |
 | `broadcasts` | Account campaign using a template, language, variables/audience, schedule, delivery lock and aggregate counters. Status `draft/scheduled/sending/sent/failed`. |
 | `broadcast_recipients` | Recipient state and Meta message ID, timestamps, template params/error. Status `pending/sent/delivered/read/replied/failed`; non-null Meta IDs are globally unique in this table. |
 
@@ -187,6 +187,7 @@ Current checked-in order:
 | `0003_remove_profile_obsolete_fields.sql` | Drops obsolete `profiles.role` and `profiles.beta_features`. |
 | `0004_cultured_lady_bullseye.sql` | Adds PostgreSQL UUID-text defaults to the four Better Auth primary keys; fixes OAuth/verification inserts that intentionally send `DEFAULT`. |
 | `0005_rebrand_furyleeds.sql` | Removes pre-rebrand realtime functions/triggers, revokes API keys issued with the retired prefix, and installs the `furyleeds_realtime_v1` objects for existing databases. |
+| `0006_normalize_template_jsonb.sql` | Converts legacy `message_templates.buttons` and `sample_values` JSONB strings into native arrays/objects; current template writes bind serialized values with an explicit `::jsonb` cast. |
 
 Operational workflow:
 
@@ -202,7 +203,7 @@ The migration runner uses Drizzle's Bun SQL migrator and calls the shared `close
 ## Known schema and migration limits
 
 1. **No RLS.** Database credentials have broad access; tenant safety depends on account-scoped application queries.
-2. **Flattened history.** Comments in source refer to historical migration numbers such as 026/028/030/039, but the repository currently contains only `0000`–`0005`; those comments are provenance, not runnable files here.
+2. **Flattened history.** Comments in source refer to historical migration numbers such as 026/028/030/039, but the repository currently contains only `0000`–`0006`; those comments are provenance, not runnable files here.
 3. **Embedding type mismatch.** The checked-in Drizzle schema and `0001` define `ai_knowledge_chunks.embedding` as PostgreSQL `real[]`, while `src/lib/ai/knowledge.ts` inserts/casts and orders values as `vector(1536)` using the `<=>` operator. No `CREATE EXTENSION vector` appears in the four checked-in migrations. Semantic embedding ingestion/retrieval therefore requires an out-of-band compatible schema or a corrective migration; lexical FTS is independently implemented and failures degrade to FTS/empty results.
 4. **Generated phone SQL needs verification.** The Drizzle source expression is `regexp_replace(phone, '\D', '', 'g')`. The flattened SQL text visibly renders the pattern as `'D'`; operators should verify the actual deployed generated expression before relying on normalization and uniqueness.
 5. **Single membership/account assumptions.** Unique `profiles.user_id` and unique `accounts.owner_user_id` prevent multiple active account memberships/owned accounts per user.

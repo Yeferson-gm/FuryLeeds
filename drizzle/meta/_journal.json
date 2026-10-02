@@ -43,6 +43,13 @@
       "when": 1790270103216,
       "tag": "0005_rebrand_furyleeds",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790946494452,
+      "tag": "0006_normalize_template_jsonb",
+      "breakpoints": true
     }
   ]
 }

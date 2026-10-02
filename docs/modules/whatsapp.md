@@ -58,7 +58,7 @@ Validate payload, load account conversation/contact/config, prefer phone then BS
 
 ### Templates
 
-Validate Meta limits and contiguous variables, generate canonical components, upload media-header samples through resumable upload, submit/edit/delete, synchronize catalog, and consume lifecycle webhooks. Unknown lifecycle templates may create a tenant-resolved stub.
+Validate Meta limits and contiguous variables, generate canonical components, upload media-header samples through resumable upload, submit/edit/delete, synchronize catalog, and consume lifecycle webhooks. Template buttons and sample values are explicitly bound as PostgreSQL JSONB so Bun/Drizzle cannot double-encode them as strings; legacy strings are normalized on read and by migration `0006`. Unknown lifecycle templates may create a tenant-resolved stub.
 
 ## Authorization and tenant boundary
 
@@ -74,6 +74,7 @@ Message/conversation/reaction DB triggers drive Socket.IO. Webhook processing em
 - No/multiple configs for a phone number → event logged and dropped to avoid cross-tenant guessing.
 - Missing phone and BSUID → inbound dropped/outbound 400.
 - Decryption/key mismatch, Meta OAuth/permission/ID/PIN/restriction/rate errors, registration mismatch.
+- Template persistence failures expose a generic UI error and log only allowlisted database code/constraint metadata; SQL text, bound parameters, message content and contact PII are never included.
 - Duplicate inbound is a deliberate no-op; status transitions cannot regress.
 - Media mirroring is best-effort; proxy URL remains fallback when possible.
 - `after()` work remains bounded by route `maxDuration`.

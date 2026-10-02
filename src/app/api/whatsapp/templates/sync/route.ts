@@ -7,6 +7,8 @@ import {
   UnauthorizedError,
 } from '@/lib/auth/account';
 import { schema } from '@/lib/db';
+import { jsonbValue } from '@/lib/db/jsonb';
+import { safeDatabaseError } from '@/lib/db/safe-error';
 import { decrypt } from '@/lib/whatsapp/encryption';
 import { normalizeStatus } from '@/lib/whatsapp/template-status-normalize';
 import type { TemplateButton, TemplateSampleValues } from '@/types';
@@ -232,8 +234,8 @@ export async function POST() {
         headerHandle: header?.example?.header_handle?.[0] ?? null,
         bodyText: body?.text ?? '',
         footerText: footer?.text ?? null,
-        buttons: parsedButtons.length ? parsedButtons : null,
-        sampleValues,
+        buttons: jsonbValue(parsedButtons.length ? parsedButtons : null),
+        sampleValues: jsonbValue(sampleValues),
         status: normalizeStatus(t.status),
         metaTemplateId: t.id,
         qualityScore: normalizeQualityScore(t.quality_score),
@@ -264,10 +266,14 @@ export async function POST() {
           inserted++;
         }
       } catch (error) {
+        console.error(
+          'Error persisting synchronized template:',
+          safeDatabaseError(error)
+        );
         errors.push({
           name: t.name,
           language: t.language,
-          message: error instanceof Error ? error.message : String(error),
+          message: 'Failed to persist this template locally.',
         });
       }
     }

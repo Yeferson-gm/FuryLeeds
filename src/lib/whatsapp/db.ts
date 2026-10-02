@@ -1,6 +1,7 @@
 import { and, asc, eq, ilike } from 'drizzle-orm';
 import type { db as appDb } from '@/lib/db';
 import { schema } from '@/lib/db';
+import { decodeJsonbValue } from '@/lib/db/jsonb';
 import { normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils';
 import type { MessageTemplate } from '@/types';
 
@@ -36,9 +37,11 @@ export function toMessageTemplate(row: MessageTemplateRow): MessageTemplate {
     header_media_url: row.headerMediaUrl ?? undefined,
     body_text: row.bodyText,
     footer_text: row.footerText ?? undefined,
-    buttons: (row.buttons as MessageTemplate['buttons']) ?? undefined,
+    buttons:
+      decodeJsonbValue<MessageTemplate['buttons']>(row.buttons) ?? undefined,
     sample_values:
-      (row.sampleValues as MessageTemplate['sample_values']) ?? undefined,
+      decodeJsonbValue<MessageTemplate['sample_values']>(row.sampleValues) ??
+      undefined,
     status: (row.status as MessageTemplate['status']) ?? undefined,
     meta_template_id: row.metaTemplateId ?? undefined,
     rejection_reason: row.rejectionReason ?? undefined,

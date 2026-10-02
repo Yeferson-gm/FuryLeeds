@@ -43,6 +43,7 @@ Never log:
 - `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY`, cron secret, webhook secret/signature inputs;
 - raw email reset/verification URLs or tokens;
 - full request/response bodies, WhatsApp message content, uploaded files, AI knowledge/prompt content;
+- SQL query text or bound parameter arrays from ORM/driver exceptions, because parameters may contain contact PII, message content and document URLs;
 - plaintext or encrypted credential columns;
 - `DATABASE_URL`, authorization headers, full customer webhook URLs with sensitive query strings;
 - unnecessary names, emails, phones, IPs, or user agents.

@@ -7,6 +7,8 @@ import {
   UnauthorizedError,
 } from '@/lib/auth/account';
 import { schema } from '@/lib/db';
+import { jsonbValue } from '@/lib/db/jsonb';
+import { safeDatabaseError } from '@/lib/db/safe-error';
 import { toMessageTemplate, type WhatsAppQueryDb } from '@/lib/whatsapp/db';
 import { decrypt } from '@/lib/whatsapp/encryption';
 import { MetaApiError, submitMessageTemplate } from '@/lib/whatsapp/meta-api';
@@ -51,8 +53,8 @@ function buildUpsertRow(
     headerHandle: payload.header_handle ?? null,
     bodyText: payload.body_text,
     footerText: payload.footer_text ?? null,
-    buttons: payload.buttons ?? null,
-    sampleValues: payload.sample_values ?? null,
+    buttons: jsonbValue(payload.buttons),
+    sampleValues: jsonbValue(payload.sample_values),
     status: extras.status,
     metaTemplateId: extras.metaTemplateId,
     submissionError: extras.submissionError,
@@ -263,12 +265,9 @@ export async function POST(request: Request) {
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return toErrorResponse(error);
     }
-    console.error('Error submitting template:', error);
+    console.error('Error submitting template:', safeDatabaseError(error));
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Failed to submit template.',
-      },
+      { error: 'Failed to persist the template locally.' },
       { status: 500 }
     );
   }
